@@ -5,4 +5,4 @@ output:
     toc: false
 ---
 
-Describe your project.
+This project aims to see if the posterior means and standard errors returned from `ruvb` are competitive when inserted into `ash`.
