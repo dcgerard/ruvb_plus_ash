@@ -214,10 +214,10 @@ sout <- t(snow::parSapply(cl = cl, par_list, FUN = one_rep, current_params = arg
 stopCluster(cl)
 
 
-## save(sout, file = "general_sims2.Rd")
-mse_mat <- cbind(par_vals, sout[, 1:27])
-auc_mat <- cbind(par_vals, sout[, 28:54])
-pi0_mat <- cbind(par_vals, sout[, 55:81])
+save(sout, file = "./output/sims_out/general_sims2.Rd")
+mse_mat <- cbind(par_vals, sout[, 1:28])
+auc_mat <- cbind(par_vals, sout[, 29:56])
+pi0_mat <- cbind(par_vals, sout[, 57:84])
 write.csv(mse_mat, file = "./output/sims_out/mse_mat2.csv", row.names = FALSE)
 write.csv(auc_mat, file = "./output/sims_out/auc_mat2.csv", row.names = FALSE)
 write.csv(pi0_mat, file = "./output/sims_out/pi0_mat2.csv", row.names = FALSE)
