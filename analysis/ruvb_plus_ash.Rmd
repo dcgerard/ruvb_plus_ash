@@ -17,7 +17,7 @@ Read in estimates of $\pi_0$ and calculate mean of estimates of $\pi_0$.
 library(dplyr)
 pi0hat <- read.csv(file = "../output/sims_out/pi0_mat2.csv")
 pos_bad <- grep(names(pi0hat), pattern = "auc") # some columns accidently have auc instead of pi0hat
-pi0hat <- select(pi0hat, -pos_bad)
+pi0hat <- select(pi0hat, -pos_bad) %>% select(-pi0_qvalue_ruvb)
 mean_dat <- pi0hat %>%
   dplyr::select(-current_seed, -poisthin) %>%
   dplyr::group_by(nullpi, Nsamp, ncontrols) %>%
