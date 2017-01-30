@@ -1,0 +1,100 @@
+---
+title: "RUVB LFSR's"
+author: "David Gerard"
+date: "January 30, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Abstract
+
+This is meant just to look at a few datasets to see if RUVB tentatively calculates good lfsr's. RUVB doesn't return good lfsr's but MOUTHWASH does. Running ASH on RUVB is competitive with MOUTHWASH.
+
+# Generate Data and Fit Method
+
+Generate Poisson-thinned data under the simulation settings used in paper.
+
+```{r}
+source("../code/data_generators.R")
+args <- list()
+args$nullpi       <- 0.9
+args$Nsamp        <- 10
+args$ncontrol     <- 100
+args$poisthin     <- TRUE
+args$log2foldsd   <- 0.8
+args$tissue       <- "muscle"
+args$path         <- "../output/gtex_tissue_gene_reads_v6p/"
+args$Ngene        <- 1000
+args$skip_gene    <- 0
+args$log2foldmean <- 0
+
+set.seed(723)
+d_out <- datamaker_counts_only(args)
+which_null <- d_out$meta$null
+control_genes <- as.logical(which_null)
+nnull         <- sum(control_genes)
+control_genes[control_genes][sample(1:nnull, size = nnull - args$ncontrol)] <- FALSE
+beta_true <- rep(0, length = args$Ngene)
+beta_true[!which_null] <- d_out$meta$true_log2foldchange
+X <- as.matrix(model.matrix(~d_out$input$condition))
+colnames(X) <- c("Intercept", "Treatment")
+Y <- t(log2(as.matrix(d_out$input$counts + 1)))
+num_sv <- max(sva::num.sv(t(Y), mod = X, method = "be"), 1)
+```
+
+Fit RUVB
+
+```{r}
+library(vicar)
+library(ggplot2)
+ruvbout <- ruvb(Y = Y, X = X, ctl = control_genes, k = num_sv,
+                fa_args = list(use_code = "r", nsamp = 10000, display_progress = FALSE),
+                cov_of_interest = 2)
+
+mout <- mouthwash(Y = Y, X = X, k = num_sv, cov_of_interest = 2)
+
+morder <- order(mout$result$qvalue)
+m_fdr <- cumsum(which_null[morder]) / (1:length(which_null))
+m_qvalue_sorted <- mout$result$qvalue[morder]
+mdat <- data.frame(m_fdr, m_qvalue = m_qvalue_sorted)
+ggplot(data = mdat, mapping = aes(x = m_qvalue, y = m_fdr)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0) +
+  ggtitle("MOUTHWASH")
+
+
+rorder <- order(ruvbout$lfsr2, na.last = NA)
+r_fdr <- cumsum(which_null[rorder]) / (1:sum(!is.na(ruvbout$lfsr2)))
+r_svalue_sorted <- ruvbout$svalues2[rorder]
+rdat <- data.frame(r_fdr, r_svalue = r_svalue_sorted)
+ggplot(data = rdat, mapping = aes(x = r_svalue, y = r_fdr)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0) +
+  ggtitle("RUVB")
+```
+
+MOUTHWASH does awesome, RUVB does not do well. Now run ASH on RUVB.
+
+```{r}
+aout <- ashr::ash(betahat = c(ruvbout$means), sebetahat = c(ruvbout$sd))
+alfdr <- ashr::get_lfdr(aout)
+aorder <- order(alfdr)
+a_fdr <- cumsum(which_null[aorder]) / 1:length(aorder)
+a_qvalue <- ashr::get_qvalue(aout)[aorder]
+adat <- data.frame(a_fdr, a_qvalue)
+ggplot(data = adat, mapping = aes(x = a_qvalue, y = a_fdr)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0) +
+  ggtitle("RUVB + ASH")
+```
+
+
+RUVB + ASH does really well.
+
+```{r}
+sessionInfo()
+```
