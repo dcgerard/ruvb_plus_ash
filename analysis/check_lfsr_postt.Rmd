@@ -1,0 +1,74 @@
+---
+title: "LFSR vs Posterior T"
+author: "David Gerard"
+date: "January 30, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+# Generate Poisson-thinned data under the simulation settings used in paper.
+
+```{r}
+source("../code/data_generators.R")
+args <- list()
+args$nullpi       <- 0.9
+args$Nsamp        <- 10
+args$ncontrol     <- 100
+args$poisthin     <- TRUE
+args$log2foldsd   <- 0.8
+args$tissue       <- "muscle"
+args$path         <- "../output/gtex_tissue_gene_reads_v6p/"
+args$Ngene        <- 1000
+args$skip_gene    <- 0
+args$log2foldmean <- 0
+
+set.seed(3)
+d_out <- datamaker_counts_only(args)
+which_null <- d_out$meta$null
+control_genes <- as.logical(which_null)
+nnull         <- sum(control_genes)
+control_genes[control_genes][sample(1:nnull, size = nnull - args$ncontrol)] <- FALSE
+beta_true <- rep(0, length = args$Ngene)
+beta_true[!which_null] <- d_out$meta$true_log2foldchange
+X <- as.matrix(model.matrix(~d_out$input$condition))
+colnames(X) <- c("Intercept", "Treatment")
+Y <- t(log2(as.matrix(d_out$input$counts + 1)))
+num_sv <- max(sva::num.sv(t(Y), mod = X, method = "be"), 1)
+```
+
+Fit RUVB
+
+```{r}
+library(vicar)
+library(ggplot2)
+ruvbout <- ruvb(Y = Y, X = X, ctl = control_genes, k = num_sv,
+                fa_args = list(use_code = "r", nsamp = 10000, display_progress = FALSE),
+                cov_of_interest = 2)
+```
+
+# Check lfsr's vs posterior t-statistics.
+
+```{r}
+library(ggplot2)
+postt <- abs(ruvbout$t)
+dat <- data.frame(postt = rank(c(postt), na.last = NA),
+                  lfsr = length(postt) - rank(c(ruvbout$lfsr2), na.last = NA))
+ggplot(data = dat, mapping = aes(x = postt, y = lfsr)) +
+  geom_line()
+```
+
+```{r}
+mu <- rnorm(100)
+sd <- rchisq(100, 50) / 50
+tstat <- abs(mu / sd)
+p <- pnorm(0, mean = mu, sd = sd)
+lfsr <- pmin(p, 1 - p)
+plot(lfsr, tstat)
+plot(rank(lfsr), rank(tstat))
+```
+
