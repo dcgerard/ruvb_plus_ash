@@ -65,7 +65,7 @@ datamaker_counts_only <- function(args) {
             dfargs$Nsamp <- min(dim(rawdata1)[2], dim(rawdata2)[2])
         }
         if (dim(rawdata1)[2] < dfargs$Nsamp | dim(rawdata2)[2] < dfargs$Nsamp) {
-            stop("Not enough samples in the raw dataset!")
+            ##stop("Not enough samples in the raw dataset!")
         }
 
         if (dfargs$nullpi == 0) {
@@ -250,6 +250,9 @@ pois_thinning <- function(counts, args, null) {
                                         tau_seq = args$tau_seq,
                                         p = sum(!null))
             cat("yay!\n")
+        } else if (args$alt_type == "constant") {
+          stopifnot(nrow(counts) == 2)
+          log2foldchanges <- c(1, -1)
         }
         log2foldchanges <- log2foldchanges * args$log2fold_inflate_beta ## inflation defaults to 1.
 

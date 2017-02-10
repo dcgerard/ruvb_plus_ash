@@ -1,0 +1,82 @@
+---
+title: "RUVB Plus ASH"
+author: "David Gerard"
+date: "January 13, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Description
+Here, I provide some comparisons between `seqgendiff` and the code from data_generators.R. I hope to show that they provide comparable comparisons.
+
+I first take a look at only two_genes.
+
+```{r}
+## subset data -----------------------------------------------------------
+## forces datamaker_counts and poisthin to have same effect sizes
+set.seed(13)
+constant_function <- function(n) { c(-1, 1) } 
+library(seqgendiff)
+mat <- read.csv("../output/gtex_tissue_gene_reads_v6p/muscle.csv")
+max_row <- order(rowMeans(mat[, -(1:2)]), decreasing = TRUE)[1:2]
+gmat <- mat[max_row, , drop = FALSE]
+write.csv(gmat, "../output/small/muscle.csv", row.names = FALSE)
+smalldat <- as.matrix(t(gmat[, -(1:2)]))
+
+## settings for datamaker
+source("../code/data_generators.R")
+args <- list()
+args$nullpi     <- 0
+args$Nsamp      <- nrow(smalldat) / 2
+args$Ngene      <- ncol(smalldat)
+args$log2foldsd <- 1
+args$poisthin   <- TRUE
+args$tissue     <- "muscle"
+args$path       <- "../output/small/"
+args$alt_type   <- "constant" ## forces to have same effect size as poisthin
+
+
+itermax <- 100
+simmat <- matrix(NA, nrow = itermax, ncol = 4)
+colnames(simmat) <- c("datamaker_1", "datamaker_neg1", "poisthin_neg1", "poisthin_1")
+for (index in 1:itermax) {
+  pout <- poisthin(mat = smalldat, nsamp = nrow(smalldat),
+                 ngene = 2, gselect = "custom", gvec = c(TRUE, TRUE),
+                 signal_fun = constant_function, signal_params = list(),
+                 prop_null = 0)
+  dout <- datamaker_counts_only(args)
+  Yd <- log2(dout$input$counts + 1)
+  Xd <- stats::model.matrix(~dout$input$condition)
+  betad <- dout$meta$true_log2foldchange
+  Yp <- log2(pout$Y + 1)
+  Xp <- pout$X
+  betap <- pout$beta
+  lmd <- limma::lmFit(object = Yd, design = Xd)
+  lmp <- limma::lmFit(object = t(Yp), design = Xp)
+  simmat[index, 1:2] <- lmd$coefficients[, 2]
+  simmat[index, 3:4] <- lmp$coefficients[, 2]
+}
+```
+
+# Plot Results
+
+Noteice that the boxplots should be centered about 1 and -1. datamaker is, and has much lower variability. Poisthin is scattered everywhere. This is a subtle bug and I need to figure out what's going on.
+```{r}
+boxplot(simmat)
+abline(h = 1, lty = 2)
+abline(h = -1, lty = 2)
+```
+
+
+Is it the way I am subsampling? I should observe half of the observations
+```{r}
+mean(Xp[, 2])
+mean(Xd[, 2])
+```
+
+```{r}
+sessionInfo()
+```

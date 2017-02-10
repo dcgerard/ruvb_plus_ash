@@ -1,0 +1,59 @@
+---
+title: "RUVB Plus ASH"
+author: "David Gerard"
+date: "January 13, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Description
+I ran simulations using the code [here](https://github.com/dcgerard/ruvb_plus_ash/blob/master/code/get_pvalues.R). Specifically, I performed Poisson thinning using the [seqgendiff](https://github.com/dcgerard/seqgendiff) package under the following settings:
+
+* Proportion of Genes that are Null = 0.5, 0.9, 1
+* Number of Samples = 6, 10, 20, 40
+* Number of Genes = 1000
+* log2 effect size distribution: N(0, 0.8^2)
+* Number of Controls = 10, 100
+* Each combination of parameters had 200 replicates.
+
+## Read in Data
+```{r}
+library(dplyr)
+library(ggplot2)
+load("../output/sims_out/pvalue_matrices.Rd")
+sout              <- as_data_frame(sout)
+sout$current_seed <- unlist(sout$current_seed)
+sout$nullpi       <- unlist(sout$nullpi)
+sout$Nsamp        <- unlist(sout$Nsamp)
+sout$ncontrols    <- unlist(sout$ncontrols)
+head(sout)
+```
+
+## Calculate AUC
+```{r}
+get_auc <- function(pmat) {
+  pvalue_indices <- colnames(pmat) != "which_null" & colnames(pmat) != "control_genes"
+  null_col <- which(colnames(pmat) == "which_null")
+  auc_vec <- c()
+  for(index in 1:ncol(pmat)) {
+    if (pvalue_indices[index]) {
+      auc_vec <- c(pROC::auc(predictor = pmat[, index], response = pmat[, null_col]), 
+                   auc_vec)
+    }
+  }
+  names(auc_vec) <- colnames(pmat)[pvalue_indices]
+  return(auc_vec)
+}
+auc_out
+for (index in 1:nrow(sout)) {
+    get_auc(sout$pvalues[sout$nullpi != 1], FUN = get_auc)
+}
+```
+
+
+```{r}
+sessionInfo()
+```

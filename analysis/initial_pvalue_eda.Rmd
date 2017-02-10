@@ -1,0 +1,78 @@
+---
+title: "RUVB Plus ASH"
+author: "David Gerard"
+date: "January 13, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Description
+I ran simulations using the code [here](https://github.com/dcgerard/ruvb_plus_ash/blob/master/code/get_pvalues.R). Specifically, I performed Poisson thinning using the [seqgendiff](https://github.com/dcgerard/seqgendiff) package under the following settings:
+
+* Proportion of Genes that are Null = 0.5, 0.9, 1
+* Number of Samples = 6, 10, 20, 40
+* Number of Genes = 1000
+* log2 effect size distribution: N(0, 0.8^2)
+* Number of Controls = 10, 100
+* Each combination of parameters had 200 replicates.
+
+## Read in Data
+```{r}
+trash <- capture.output(library(dplyr))
+library(ggplot2)
+library(tidyr)
+load("../output/sims_out/pvalue_matrices.Rd")
+sout              <- as_data_frame(sout)
+sout$current_seed <- unlist(sout$current_seed)
+sout$nullpi       <- unlist(sout$nullpi)
+sout$Nsamp        <- unlist(sout$Nsamp)
+sout$ncontrols    <- unlist(sout$ncontrols)
+head(sout)
+```
+
+## Calculate AUC and Plot Values
+```{r}
+get_auc <- function(pmat) {
+  pvalue_indices <- colnames(pmat) != "which_null" & colnames(pmat) != "control_genes"
+  null_col <- which(colnames(pmat) == "which_null")
+  is_not_control <- !as.logical(pmat[, colnames(pmat) == "control_genes", drop = TRUE])
+  auc_vec <- c()
+  for(index in 1:ncol(pmat)) {
+    if (pvalue_indices[index]) {
+      auc_vec <- c(pROC::auc(predictor = pmat[is_not_control, index],
+                             response = pmat[is_not_control, null_col]), auc_vec)
+    }
+  }
+  names(auc_vec) <- colnames(pmat)[pvalue_indices]
+  return(auc_vec)
+}
+auc_out <- sapply(sout$pvalues[sout$nullpi != 1], FUN = get_auc)
+auc_dat <- matrix(NA, nrow=  nrow(sout), ncol = nrow(auc_out))
+auc_dat[sout$nullpi != 1, ] <- t(auc_out)
+auc_dat <- as_data_frame(auc_dat)
+stopifnot(all(head(auc_dat) == head(t(auc_out))))
+names(auc_dat) <- paste0("auc_", rownames(auc_out))
+tout <- dplyr::bind_cols(sout, auc_dat)
+saveRDS(tout, file = "../output/sims_out/pvalue_mat_auc.Rds")
+```
+
+
+```{r}
+longdat <- select(tout, -c(pvalues, current_seed)) %>%
+  gather(key = "Method", value = "AUC", contains("auc"))
+sumdat <- longdat %>% group_by(nullpi, Nsamp, ncontrols, Method) %>% summarize(Mean = mean(AUC))
+ggplot(data = sumdat, mapping = aes(x = Method, y = Mean)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  facet_grid(nullpi ~ ncontrols)
+
+filter(sumdat, nullpi == 0.5, Nsamp == 40, ncontrols == 10)
+```
+
+
+```{r}
+sessionInfo()
+```
