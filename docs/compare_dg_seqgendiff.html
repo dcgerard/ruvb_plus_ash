@@ -13,7 +13,7 @@
 
 <meta name="date" content="2017-01-13" />
 
-<title>RUVB Plus ASH</title>
+<title>Inconsistancy between two ways to generate sequence data</title>
 
 <script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -302,7 +302,7 @@ div.tocify {
 
 
 
-<h1 class="title toc-ignore">RUVB Plus ASH</h1>
+<h1 class="title toc-ignore">Inconsistancy between two ways to generate sequence data</h1>
 <h4 class="author"><em>David Gerard</em></h4>
 <h4 class="date"><em>January 13, 2017</em></h4>
 
@@ -337,13 +337,13 @@ args$path       &lt;- &quot;../output/small/&quot;
 args$alt_type   &lt;- &quot;constant&quot; ## forces to have same effect size as poisthin
 
 
-itermax &lt;- 1000
+itermax &lt;- 100
 simmat &lt;- matrix(NA, nrow = itermax, ncol = 4)
 colnames(simmat) &lt;- c(&quot;datamaker_1&quot;, &quot;datamaker_neg1&quot;, &quot;poisthin_neg1&quot;, &quot;poisthin_1&quot;)
 for (index in 1:itermax) {
   pout &lt;- poisthin(mat = smalldat, nsamp = nrow(smalldat),
                  ngene = 2, gselect = &quot;custom&quot;, gvec = c(TRUE, TRUE),
-                 constant_function, signal_params = list(), skip_gene = 0,
+                 signal_fun = constant_function, signal_params = list(),
                  prop_null = 0)
   dout &lt;- datamaker_counts_only(args)
   Yd &lt;- log2(dout$input$counts + 1)
@@ -360,11 +360,15 @@ for (index in 1:itermax) {
 </div>
 <div id="plot-results" class="section level1">
 <h1>Plot Results</h1>
-<p>Noteice that the boxplots should be centered about 1 and -1. datamaker is, and has much lower variability. Poisthin is scattered everywhere. This is a subtle bug and I need to figure out what’s going on.</p>
+<p>Notice that the boxplots should be centered about 1 and -1. datamaker is, and has much lower variability. Poisthin is scattered everywhere. This is a subtle bug and I need to figure out what’s going on.</p>
 <pre class="r"><code>boxplot(simmat)
 abline(h = 1, lty = 2)
 abline(h = -1, lty = 2)</code></pre>
 <p><img src="compare_dg_seqgendiff_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
+<pre class="r"><code>mean(Xp[, 2])</code></pre>
+<pre><code>## [1] 0.5</code></pre>
+<pre class="r"><code>mean(Xd[, 2])</code></pre>
+<pre><code>## [1] 0.5</code></pre>
 <pre class="r"><code>sessionInfo()</code></pre>
 <pre><code>## R version 3.3.2 (2016-10-31)
 ## Platform: x86_64-pc-linux-gnu (64-bit)

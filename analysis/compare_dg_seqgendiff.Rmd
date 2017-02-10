@@ -1,5 +1,5 @@
 ---
-title: "RUVB Plus ASH"
+title: "Inconsistancy between two ways to generate sequence data"
 author: "David Gerard"
 date: "January 13, 2017"
 output: html_document
@@ -63,7 +63,7 @@ for (index in 1:itermax) {
 
 # Plot Results
 
-Noteice that the boxplots should be centered about 1 and -1. datamaker is, and has much lower variability. Poisthin is scattered everywhere. This is a subtle bug and I need to figure out what's going on.
+Notice that the boxplots should be centered about 1 and -1. datamaker is, and has much lower variability. Poisthin is scattered everywhere. This is a subtle bug and I need to figure out what's going on.
 ```{r}
 boxplot(simmat)
 abline(h = 1, lty = 2)
@@ -71,7 +71,7 @@ abline(h = -1, lty = 2)
 ```
 
 
-Is it the way I am subsampling? I should observe half of the observations
+
 ```{r}
 mean(Xp[, 2])
 mean(Xd[, 2])
