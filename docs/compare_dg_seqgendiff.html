@@ -312,11 +312,11 @@ div.tocify {
 <div id="description" class="section level2">
 <h2>Description</h2>
 <p>Here, I provide some comparisons between <code>seqgendiff</code> and the code from data_generators.R. I hope to show that they provide comparable comparisons.</p>
-<p>I first take a look at only two_genes.</p>
+<p>I first take a look at only two_genes. Briefly, I added signal using the two different codes to the two most expressed genes (in terms of mean expression). I used an effect size of 1 for one gene and -1 for another gene. I then ran limma on the result and saved the estimated effect size. I did this 500 times and the boxplots are the estimated coefficients.</p>
 <pre class="r"><code>## subset data -----------------------------------------------------------
 ## forces datamaker_counts and poisthin to have same effect sizes
 set.seed(13)
-constant_function &lt;- function(n) { c(-1, 1) } 
+constant_function &lt;- function(n) { c(1, -1) }
 library(seqgendiff)
 mat &lt;- read.csv(&quot;../output/gtex_tissue_gene_reads_v6p/muscle.csv&quot;)
 max_row &lt;- order(rowMeans(mat[, -(1:2)]), decreasing = TRUE)[1:2]
@@ -337,7 +337,7 @@ args$path       &lt;- &quot;../output/small/&quot;
 args$alt_type   &lt;- &quot;constant&quot; ## forces to have same effect size as poisthin
 
 
-itermax &lt;- 100
+itermax &lt;- 500
 simmat &lt;- matrix(NA, nrow = itermax, ncol = 4)
 colnames(simmat) &lt;- c(&quot;datamaker_1&quot;, &quot;datamaker_neg1&quot;, &quot;poisthin_neg1&quot;, &quot;poisthin_1&quot;)
 for (index in 1:itermax) {
@@ -360,15 +360,11 @@ for (index in 1:itermax) {
 </div>
 <div id="plot-results" class="section level1">
 <h1>Plot Results</h1>
-<p>Notice that the boxplots should be centered about 1 and -1. datamaker is, and has much lower variability. Poisthin is scattered everywhere. This is a subtle bug and I need to figure out what’s going on.</p>
+<p>Notice that the boxplots should be centered about 1 and -1.</p>
 <pre class="r"><code>boxplot(simmat)
 abline(h = 1, lty = 2)
 abline(h = -1, lty = 2)</code></pre>
 <p><img src="compare_dg_seqgendiff_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
-<pre class="r"><code>mean(Xp[, 2])</code></pre>
-<pre><code>## [1] 0.5</code></pre>
-<pre class="r"><code>mean(Xd[, 2])</code></pre>
-<pre><code>## [1] 0.5</code></pre>
 <pre class="r"><code>sessionInfo()</code></pre>
 <pre><code>## R version 3.3.2 (2016-10-31)
 ## Platform: x86_64-pc-linux-gnu (64-bit)

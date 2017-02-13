@@ -12,13 +12,13 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Description
 Here, I provide some comparisons between `seqgendiff` and the code from data_generators.R. I hope to show that they provide comparable comparisons.
 
-I first take a look at only two_genes.
+I first take a look at only two_genes. Briefly, I added signal using the two different codes to the two most expressed genes (in terms of mean expression). I used an effect size of 1 for one gene and -1 for another gene. I then ran limma on the result and saved the estimated effect size. I did this 500 times and the boxplots are the estimated coefficients. 
 
 ```{r}
 ## subset data -----------------------------------------------------------
 ## forces datamaker_counts and poisthin to have same effect sizes
 set.seed(13)
-constant_function <- function(n) { c(-1, 1) } 
+constant_function <- function(n) { c(1, -1) }
 library(seqgendiff)
 mat <- read.csv("../output/gtex_tissue_gene_reads_v6p/muscle.csv")
 max_row <- order(rowMeans(mat[, -(1:2)]), decreasing = TRUE)[1:2]
@@ -39,7 +39,7 @@ args$path       <- "../output/small/"
 args$alt_type   <- "constant" ## forces to have same effect size as poisthin
 
 
-itermax <- 100
+itermax <- 500
 simmat <- matrix(NA, nrow = itermax, ncol = 4)
 colnames(simmat) <- c("datamaker_1", "datamaker_neg1", "poisthin_neg1", "poisthin_1")
 for (index in 1:itermax) {
@@ -63,19 +63,13 @@ for (index in 1:itermax) {
 
 # Plot Results
 
-Notice that the boxplots should be centered about 1 and -1. datamaker is, and has much lower variability. Poisthin is scattered everywhere. This is a subtle bug and I need to figure out what's going on.
+Notice that the boxplots should be centered about 1 and -1.
 ```{r}
 boxplot(simmat)
 abline(h = 1, lty = 2)
 abline(h = -1, lty = 2)
 ```
 
-
-
-```{r}
-mean(Xp[, 2])
-mean(Xd[, 2])
-```
 
 ```{r}
 sessionInfo()

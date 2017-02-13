@@ -1,0 +1,25 @@
+---
+title: "Check variability in poisson sampling scheme"
+author: "David Gerard"
+date: "January 13, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Mengyin's code seems to be more accurate.
+
+```{r}
+n <- 1000
+itermax <- 100
+effect_vec <- rep(NA, itermax)
+for (index in 1:itermax) {
+samp1 <- stats::rpois(n = 216, lambda = 12)
+samp2 <- stats::rpois(n = 216, lambda = 1)
+samp3 <- rbinom(n = rep(1, length(samp1)), p = 11/12, size = samp1)
+effect_vec[index] <- mean(samp1) - mean(samp3)
+}
+boxplot(effect_vec)
+ ```
