@@ -11,7 +11,7 @@ output:
 
 * [Look at Calibration of LFDR/LFSR's](ruvb_lfsr.html) MOUTHWASH is awesome. RUVB + ASH is awesome. RUVB by itself is not so awesome.
 
-* [Inconsistancy between seqgendiff and datamaker.R](compare_dg_seqgendiff.html)
+* [Consistancy between seqgendiff and datamaker.R](compare_dg_seqgendiff.html)
 
 
 [rmarkdown]: http://rmarkdown.rstudio.com/rmarkdown_websites.htm

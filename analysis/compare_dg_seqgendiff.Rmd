@@ -1,5 +1,5 @@
 ---
-title: "Inconsistancy between two ways to generate sequence data"
+title: "Consistancy between two ways to generate sequence data"
 author: "David Gerard"
 date: "January 13, 2017"
 output: html_document
