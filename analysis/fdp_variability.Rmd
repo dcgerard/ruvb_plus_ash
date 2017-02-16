@@ -1,0 +1,133 @@
+---
+title: "FDP_variability"
+author: "David Gerard"
+date: "February 16, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Synopsis
+Here, I explore the variability of FDP between the various methods. I generally see what I saw with the coverage: CATE methods work poorly for small sample sizes and variance inflation methods work poorly for large sample sizes and small numbers of control genes. Though, RUVB doesn't fair too well when $\pi_0 = 0.9$ and there are few samples, but it does better than the CATE methods.
+ 
+ 
+# Read in Data
+
+```{r}
+suppressMessages(library(dplyr))
+library(ggplot2)
+library(tidyr)
+load("../output/sims_out/pvalue_matrices.Rd")
+sout              <- as_data_frame(sout)
+sout$current_seed <- unlist(sout$current_seed)
+sout$nullpi       <- unlist(sout$nullpi)
+sout$Nsamp        <- unlist(sout$Nsamp)
+sout$ncontrols    <- unlist(sout$ncontrols)
+head(sout)
+```
+
+# Run BH to get FDP at FDR control = 0.1
+
+```{r}
+get_fdp <- function(pmat, fdr = 0.1) {
+  which_method <- colnames(pmat) != "which_null" & colnames(pmat) != "control_genes"
+  which_null <- as.logical(pmat[, colnames(pmat) == "which_null"])
+  control_genes <- as.logical(pmat[, colnames(pmat) == "control_genes"])
+  response_vec <- which_null[!control_genes]
+  fdp_vec <- c()
+  for (index in 1:sum(which_method)) {
+    if (which_method[index]) {
+        predictor <- stats::p.adjust(p = pmat[!control_genes, index], method = "BH")
+        fdp <- mean(response_vec[predictor < fdr])
+        if(is.nan(fdp)) {
+          fdp <- 0
+        }
+        fdp_vec <- c(fdp_vec, fdp)
+    }
+  }
+  names(fdp_vec) <- colnames(pmat)[which_method]
+  return(fdp_vec)
+}
+fdp_10 <- sapply(sout$pvalues, FUN = get_fdp, fdr = 0.1)
+dat <- as_data_frame(apply(as_data_frame(cbind(t(fdp_10), sout[, -1])), 2, unlist))
+```
+
+# Boxplots of FDP
+
+```{r, fig.height=10}
+longdat <- dat %>% filter(nullpi == 0.5) %>% gather(key = "Method", value = "FDP", ols:ruvb)
+
+ggplot(longdat, mapping = aes(x = Method, y = FDP)) +
+  facet_grid(Nsamp ~ ncontrols) +
+  geom_boxplot() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 1/2)) +
+  geom_hline(yintercept = 0.1, lty = 2)
+```
+
+Note that OLS, SVA, and the RUV4 methods all have long right tails
+
+Same thing but with nullpi = 0.9.
+
+```{r, fig.height=10}
+longdat <- dat %>% filter(nullpi == 0.9) %>% gather(key = "Method", value = "FDP", ols:ruvb)
+
+ggplot(longdat, mapping = aes(x = Method, y = FDP)) +
+  facet_grid(Nsamp ~ ncontrols) +
+  geom_boxplot() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 1/2)) +
+  geom_hline(yintercept = 0.1, lty = 2)
+```
+
+Everything looks amess at 0.9.
+
+# Proportion of times really unhappy
+Suppose we get really unhappy if the FDP > 0.25 even though we are controlling it at 0.1. Let us count the proportion of times this occurs. I'll first do this when nullpi = 0.9
+
+```{r}
+threshold <- 0.25
+longdat <- dat %>% gather(key = "Method", value = "FDP", ols:ruvb)
+longdat$unhappy <- longdat$FDP > threshold
+
+pdat <- group_by(longdat, nullpi, Nsamp, ncontrols, Method) %>%
+  summarize(punhappy = mean(unhappy)) %>% 
+  filter(nullpi == 0.9)
+
+ggplot(pdat, mapping = aes(x = Method, y = punhappy)) +
+  facet_grid(Nsamp ~ ncontrols) +
+  geom_segment(mapping = aes(xend = Method, yend = 0)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+Now when nullpi = 0.5.
+
+```{r}
+threshold <- 0.25
+longdat <- dat %>% gather(key = "Method", value = "FDP", ols:ruvb)
+longdat$unhappy <- longdat$FDP > threshold
+
+pdat <- group_by(longdat, nullpi, Nsamp, ncontrols, Method) %>%
+  summarize(punhappy = mean(unhappy)) %>% 
+  filter(nullpi == 0.5)
+
+ggplot(pdat, mapping = aes(x = Method, y = punhappy)) +
+  facet_grid(Nsamp ~ ncontrols) +
+  geom_segment(mapping = aes(xend = Method, yend = 0)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+Notes:
+
+1. Again, it seems you can mostly only say that 
+    a. for small sample sizes, the CATE methods are bad, and
+    b. for large sample sizes with few control genes, the variance inflation methods are bad.
+2. Though, RUVB doesn't hold up well under this metric for small sample sizes and $\pi_0 = 0.9$.
+
+```{r}
+sessionInfo()
+```

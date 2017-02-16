@@ -1,0 +1,176 @@
+---
+title: "Study One-Rep"
+author: "David Gerard"
+date: "February 15, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Synopsis
+Here, I go into more detail on the code I used to generate data.
+
+```{r}
+library(ggplot2)
+library(dplyr)
+## These are the parameter settings RUVB did worst at
+args_val              <- list()
+args_val$nullpi       <- 0.9
+args_val$ncontrols    <- 100
+args_val$Nsamp        <- 40
+args_val$Ngene        <- 1000
+args_val$log2foldmean <- 0
+args_val$log2foldsd   <- 0.8
+args_val$current_seed <- 606
+
+mat <- t(as.matrix(read.csv("../output/gtex_tissue_gene_reads_v6p/muscle.csv")[, -(1:2)]))
+
+one_rep <- function(args_val, mat) {
+  source("../code/adjustment_methods.R")
+  
+  set.seed(args_val$current_seed)
+  dout <- seqgendiff::poisthin(mat = mat, nsamp = args_val$Nsamp,
+                               ngene = args_val$Ngene, gselect = args_val$gselect,
+                               skip_gene = 0,
+                               signal_fun = stats::rnorm,
+                               signal_params = list(mean = args_val$log2foldmean,
+                                                    sd = args_val$log2foldsd),
+                               prop_null = args_val$nullpi)
+
+  which_null    <- abs(dout$beta) < 10^-6
+  control_genes <- which_null
+  nnull         <- sum(control_genes)
+  control_genes[control_genes][sample(1:nnull, size = nnull - args_val$ncontrols)] <- FALSE
+  
+  stopifnot(all(which_null[control_genes]))
+
+  beta_true <- dout$beta
+  X <- dout$X
+  colnames(X) <- c("Intercept", "Treatment")
+  Y <- log2(as.matrix(dout$Y + 1))
+
+  num_sv <- max(sva::num.sv(t(Y), mod = X, method = "be"), 1)
+
+  method_list            <- list()
+  method_list$ols        <- ols(Y = Y, X = X)
+
+  ## control gene methods --------------------------------------------------
+  method_list$ruv2         <- ruv2(Y = Y, X = X, num_sv = num_sv,
+                                   control_genes = control_genes)
+  method_list$ruv3_nomult  <- ruv3(Y = Y, X = X, num_sv = num_sv,
+                                   control_genes = control_genes,
+                                   multiplier = FALSE)
+  method_list$ruv3_mult    <- ruv3(Y = Y, X = X, num_sv = num_sv,
+                                   control_genes = control_genes,
+                                   multiplier = TRUE)
+  method_list$ruv4         <- ruv4(Y = Y, X = X, num_sv = num_sv,
+                                   control_genes = control_genes)
+  method_list$ruv4_rsvar   <- ruv4_rsvar_ebayes(Y = Y, X = X, num_sv = num_sv,
+                                                control_genes = control_genes)
+  method_list$catenc_nocal <- cate_nc(Y = Y, X = X, num_sv = num_sv,
+                                      control_genes = control_genes,
+                                      calibrate = FALSE)
+  method_list$catenc_cal   <- cate_nc(Y = Y, X = X, num_sv = num_sv,
+                                      control_genes = control_genes,
+                                      calibrate = TRUE)
+  method_list$ruv4v_norm   <- vruv4(Y = Y, X = X,
+                                    num_sv = num_sv,
+                                    control_genes = control_genes,
+                                    likelihood = "normal")
+  method_list$ruv4v_t      <- vruv4(Y = Y, X = X,
+                                    num_sv = num_sv,
+                                    control_genes = control_genes,
+                                    likelihood = "t")
+
+  ## non control gene methods -----------------------------------------------
+  method_list$sva          <- sva(Y = Y, X = X, num_sv = num_sv)
+  method_list$caterr_nocal <- cate_rr(Y = Y, X = X, num_sv = num_sv, calibrate = FALSE)
+  method_list$caterr_cal   <- cate_rr(Y = Y, X = X, num_sv = num_sv, calibrate = TRUE)
+
+  pout <- sapply(method_list, FUN = function(x) x$pvalue)
+
+  ## Note: RUVB's p-values are actually the lfsr's.
+  ## Need to calculate them from betahat and sebetahat
+  method_list$ruvb         <- ruvb_bfa_gs_linked(Y = Y, X = X,
+                                                 num_sv = num_sv,
+                                                 control_genes = control_genes)
+  ruvb_pvalues <- c(2 * stats::pnorm(-abs(method_list$ruvb$betahat / method_list$ruvb$sebetahat)))
+
+  pout <- cbind(pout, ruvb_pvalues, which_null, control_genes)
+  colnames(pout)[(ncol(pout) - 2):ncol(pout)] <- c("ruvb", "which_null", "control_genes")
+
+  ## Now get the AUC
+  get_auc <- function(pvalues, which_null, control_genes){
+    return(pROC::auc(predictor = pvalues[!control_genes], response =  which_null[!control_genes]))
+  }
+  auc_vec <- apply(pout[, -((ncol(pout) - 1):ncol(pout))], 2, get_auc, which_null = which_null, control_genes = control_genes)
+  return(list(pout = pout, auc_vec = auc_vec))
+}
+
+```
+
+What happens when we try `gselect = "mean_max"`?
+```{r, cache = TRUE}
+## Try gselect = "mean_max"
+args_val$gselect <- "mean_max"
+itermax <- 20
+plist <- list()
+auc_mat <- matrix(NA, ncol = 14, nrow = itermax)
+for (index in 1:itermax) {
+  cat("Index: ", index, "\n")
+  args_val$current_seed <- index
+  oout <- one_rep(args_val, mat)
+  auc_mat[index, ] <- oout$auc_vec
+  plist[[index]] <- oout$pout
+}
+```
+
+I get what I was getting previously:
+```{r}
+mean_vec <- colMeans(auc_mat)
+sdvec <- apply(auc_mat, 2, sd)
+lower <- mean_vec - 2 * sdvec / sqrt(itermax)
+upper <- mean_vec + 2 * sdvec / sqrt(itermax)
+dat <- data_frame(mean_vec, sdvec, lower, upper, method = colnames(plist[[1]])[-(15:16)])
+ggplot(data = dat, mapping = aes(x = method, y = mean_vec)) +
+  geom_hline(yintercept = max(mean_vec), lty = 2) +
+  geom_segment(mapping = aes(y = upper, yend = lower, xend = method)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+
+Now what about when we try `gselect = "max"`?
+```{r, cache = TRUE}
+args_val$gselect <- "max"
+itermax <- 20
+plist <- list()
+auc_mat <- matrix(NA, ncol = 14, nrow = itermax)
+for (index in 1:itermax) {
+  cat("Index: ", index, "\n")
+  args_val$current_seed <- index
+  oout <- one_rep(args_val, mat)
+  auc_mat[index, ] <- oout$auc_vec
+  plist[[index]] <- oout$pout
+}
+```
+
+```{r}
+mean_vec <- colMeans(auc_mat)
+sdvec <- apply(auc_mat, 2, sd)
+lower <- mean_vec - 2 * sdvec / sqrt(itermax)
+upper <- mean_vec + 2 * sdvec / sqrt(itermax)
+dat <- data_frame(mean_vec, sdvec, lower, upper, method = colnames(plist[[1]])[-(15:16)])
+ggplot(data = dat, mapping = aes(x = method, y = mean_vec)) +
+  geom_hline(yintercept = max(mean_vec), lty = 2) +
+  geom_segment(mapping = aes(y = upper, yend = lower, xend = method)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+
+```{r}
+sessionInfo()
+```

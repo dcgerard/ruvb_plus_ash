@@ -21,7 +21,7 @@ I ran simulations using the code [here](https://github.com/dcgerard/ruvb_plus_as
 
 ## Read in Data
 ```{r}
-library(dplyr)
+suppressMessages(library(dplyr))
 library(ggplot2)
 load("../output/sims_out/pvalue_matrices.Rd")
 sout              <- as_data_frame(sout)
@@ -33,15 +33,17 @@ head(sout)
 ```
 
 ## Calculate AUC
-```{r}
+```{r, eval = FALSE}
 get_auc <- function(pmat) {
   pvalue_indices <- colnames(pmat) != "which_null" & colnames(pmat) != "control_genes"
   null_col <- which(colnames(pmat) == "which_null")
+  control_col <- which(colnames(pmat) == "control_genes")
+  non_control_genes <- !as.logical(pmat[, control_col])
   auc_vec <- c()
   for(index in 1:ncol(pmat)) {
     if (pvalue_indices[index]) {
-      auc_vec <- c(pROC::auc(predictor = pmat[, index], response = pmat[, null_col]), 
-                   auc_vec)
+      auc_vec <- c(auc_vec, pROC::auc(predictor = pmat[non_control_genes, index], 
+                                      response = pmat[non_control_genes, null_col]))
     }
   }
   names(auc_vec) <- colnames(pmat)[pvalue_indices]
@@ -50,11 +52,62 @@ get_auc <- function(pmat) {
 auc_out <- sapply(sout$pvalues[sout$nullpi != 1], FUN = get_auc)
 auc_dat <- as_data_frame(t(auc_out))
 stopifnot(all(head(auc_dat) == head(t(auc_out))))
-names(auc_dat) <- paste0("auc_", names(auc_dat))
-auc_dat$nullpi <- sout$nullpi[sout$nullpi != 1]
-sout <- dplyr::full_join(sout, auc_dat, by = "nullpi")
-saveRDS(file = "../output/sims_out/pvalue_mat_auc.Rds")
+auc_dat$nullpi    <- sout$nullpi[sout$nullpi != 1]
+auc_dat$Nsamp     <- sout$Nsamp[sout$nullpi != 1]
+auc_dat$ncontrols <- sout$ncontrols[sout$nullpi != 1]
+saveRDS(object = auc_dat, file = "../output/sims_out/pvalue_mat_auc.Rds")
 ```
+
+Compute sample means
+```{r}
+auc_dat <- readRDS("../output/sims_out/pvalue_mat_auc.Rds")
+longdat <- tidyr::gather(auc_dat, key = "Method", value = "AUC", ols:ruvb)
+
+sumdat <- longdat %>% group_by(nullpi, Nsamp, ncontrols, Method) %>%
+  summarise(Mean = mean(AUC))
+
+ggplot(sumdat, mapping = aes(x = Method, y = Mean, pch = factor(Nsamp))) +
+  facet_grid(ncontrols ~ nullpi) +
+  geom_point() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), 
+        strip.background = element_rect(fill = "white"))
+```
+
+Note that the methods that do not use control genes usually have better performance. This is most certainly due to shrinkage.
+
+I am going to recapitulate the plots in the RUVB paper.
+
+```{r}
+temp <- (select(auc_dat, -c(ruvb, nullpi, Nsamp, ncontrols)) - auc_dat$ruvb) %>%
+  bind_cols(select(auc_dat, nullpi, Nsamp, ncontrols)) %>%
+  tidyr::gather(key = "Method", value = "diff", ols:caterr_cal) %>%
+  group_by(nullpi, Nsamp, ncontrols, Method) %>%
+  summarize(MeanDiff = mean(diff)) %>%
+  ungroup()
+  
+ggplot(data = temp, mapping = aes(x = Nsamp, y = MeanDiff, color = Method, linetype = Method)) +
+  facet_grid(nullpi ~ ncontrols) +
+  geom_line() +
+  theme_bw() +
+  geom_hline(yintercept = 0, lty = 2)
+
+```
+
+Again, notice how the methods that do not use control genes actually do better in terms of AUC. But in terms of methods that use controls, we get the same plots as in the paper:
+
+```{r}
+data_nonc <- filter(temp, temp$Method != "caterr_cal" & temp$Method != "caterr_nocal" &
+         temp$Method != "sva")
+ggplot(data = data_nonc, 
+       mapping = aes(x = Nsamp, y = MeanDiff, color = Method, linetype = Method)) +
+  facet_grid(nullpi ~ ncontrols) +
+  geom_line() +
+  theme_bw() +
+  geom_hline(yintercept = 0, lty = 2)
+```
+
+Note that it looks a little different than in the paper because "CATEc" in the paper is "ruv4v_norm" here. "CATE" in the paper is "catenc_cal" here, "RUV4c" in the paper is "ruv4_rsvar" here.
 
 
 ```{r}

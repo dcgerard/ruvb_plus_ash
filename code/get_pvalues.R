@@ -11,10 +11,8 @@ one_rep <- function(new_params, current_params, submat) {
   source("../code/adjustment_methods.R")
   args_val <- append(current_params, new_params)
   set.seed(new_params$current_seed)
-  stopifnot(ncol(submat) == args_val$Ngene)
   dout <- seqgendiff::poisthin(mat = submat, nsamp = args_val$Nsamp,
-                               ngene = args_val$Ngene, gselect = "custom",
-                               gvec = rep(TRUE, args_val$Ngene),
+                               ngene = args_val$Ngene, gselect = "mean_max",
                                skip_gene = 0,
                                signal_fun = stats::rnorm,
                                signal_params = list(mean = args_val$log2foldmean,
@@ -24,13 +22,12 @@ one_rep <- function(new_params, current_params, submat) {
   which_null    <- abs(dout$beta) < 10^-6
   control_genes <- which_null
   nnull         <- sum(control_genes)
-  control_genes[control_genes][sample(1:nnull, size = nnull - args_val$ncontrol)] <- FALSE
+  control_genes[control_genes][sample(1:nnull, size = nnull - args_val$ncontrols)] <- FALSE
 
   beta_true <- dout$beta
   X <- dout$X
   colnames(X) <- c("Intercept", "Treatment")
   Y <- log2(as.matrix(dout$Y + 1))
-
 
   num_sv <- max(sva::num.sv(t(Y), mod = X, method = "be"), 1)
 
@@ -90,24 +87,26 @@ one_rep <- function(new_params, current_params, submat) {
   #   return(pROC::auc(predictor = pvalues, response =  which_null))
   # }
   # auc_vec <- apply(pout, 2, get_auc, which_null = which_null)
-  #
-  # ## Now get FDP
-  # get_fdp <- function(pvalues, which_null, fdr_levels = c(0.01, 0.05, 0.1, 0.2)) {
-  #   qvalues <- stats::p.adjust(pvalues, method = "BH")
-  #   fdp_vec <- rep(NA, length = length(fdr_levels))
-  #   for(findex in 1:length(fdr_levels)) {
-  #     sig_genes <- qvalues <= fdr_levels[findex]
-  #     if (sum(sig_genes, na.rm = TRUE) == 0) {
-  #       fdp_vec[findex] <- 0
-  #     } else {
-  #       fdp_vec[findex] <- mean(which_null[sig_genes], na.rm = TRUE)
-  #     }
-  #   }
-  #   return(fdp_vec)
-  # }
-  # qout <- apply(pout, 2, get_fdp, which_null = which_null)
 
+  # pROC::auc(predictor = c(method_list$ruvb$pvalues), response =  which_null)
+  # pROC::auc(predictor = c(ruvb_pvalues), response =  which_null)
+  # auc_vec[names(auc_vec) == "ruvb"]
 
+#   ## Now get FDP
+#   get_fdp <- function(pvalues, which_null, fdr_levels = c(0.01, 0.05, 0.1, 0.2)) {
+#     qvalues <- stats::p.adjust(pvalues, method = "BH")
+#     fdp_vec <- rep(NA, length = length(fdr_levels))
+#     for(findex in 1:length(fdr_levels)) {
+#       sig_genes <- qvalues <= fdr_levels[findex]
+#       if (sum(sig_genes, na.rm = TRUE) == 0) {
+#         fdp_vec[findex] <- 0
+#       } else {
+#         fdp_vec[findex] <- mean(which_null[sig_genes], na.rm = TRUE)
+#       }
+#     }
+#     return(fdp_vec)
+#   }
+#   qout <- apply(pout, 2, get_fdp, which_null = which_null)
 
   return(pout)
 }
@@ -141,21 +140,32 @@ args_val$log2foldmean <- 0
 args_val$skip_gene    <- 0
 
 ## read in gene expression matrix
-mat <- as.matrix(read.csv("../output/gtex_tissue_gene_reads_v6p/muscle.csv")[, -(1:2)])
-## select top genes
-rowmed <- apply(mat, 1, median)
-rowmean <- rowMeans(mat)
-order_vec <- order(rowmed, rowmean, decreasing = TRUE)
-submat <- t(mat[order_vec[1:args_val$Ngene], ])
-rm(mat) # so that doesn't take up memory
+mat <- t(as.matrix(read.csv("../output/gtex_tissue_gene_reads_v6p/muscle.csv")[, -(1:2)]))
+# ## select top genes
+# rowmean <- rowMeans(mat)
+# order_vec <- order(rowmean, decreasing = TRUE)
+# submat <- t(mat[order_vec[1:args_val$Ngene], ])
+# rm(mat) # so that doesn't take up memory
 
-## one_rep(par_list[[3]], args_val, submat)
+# itermax <- 30
+# auc_mat <- matrix(NA, nrow = itermax, ncol = 14)
+# for(index in 1:itermax) {
+#   one_out <- one_rep(par_list[[index]], args_val, submat = mat)
+#   ## Now get the AUC
+#   get_auc <- function(pvalues, which_null){
+#     return(pROC::auc(predictor = pvalues, response =  which_null))
+#   }
+#   auc_vec <- apply(one_out, 2, get_auc, which_null = one_out[, ncol(one_out) - 1])
+#   auc_mat[index, ] <- auc_vec[1:14]
+# }
+# plot(colMeans(auc_mat))
+
 
 ## ## If on your own computer, use this
 library(parallel)
 cl <- makeCluster(detectCores() - 2)
 sout <- t(snow::parLapply(cl = cl, par_list, fun = one_rep, current_params = args_val,
-                          submat = submat))
+                          submat = mat))
 stopCluster(cl)
 
 sout <- t(rbind(sout, t(as.matrix(par_vals))))

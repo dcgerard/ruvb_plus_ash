@@ -1,0 +1,101 @@
+---
+title: "Explore FDR Control"
+author: "David Gerard"
+date: "February 16, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Synopsis
+
+Here, I explore how various methods perform in terms of average FDR control. Of course, OLS should do very well on average, but let's see how the other methods perform. In general, the best performing methods, besides OLS, are RUV2 and RUV3.
+
+# Read in Data
+
+```{r}
+suppressMessages(library(dplyr))
+library(ggplot2)
+library(tidyr)
+load("../output/sims_out/pvalue_matrices.Rd")
+sout              <- as_data_frame(sout)
+sout$current_seed <- unlist(sout$current_seed)
+sout$nullpi       <- unlist(sout$nullpi)
+sout$Nsamp        <- unlist(sout$Nsamp)
+sout$ncontrols    <- unlist(sout$ncontrols)
+head(sout)
+```
+
+# Run BH to get FDP at FDR control = 0.1
+
+```{r}
+get_fdp <- function(pmat, fdr = 0.1) {
+  which_method <- colnames(pmat) != "which_null" & colnames(pmat) != "control_genes"
+  which_null <- as.logical(pmat[, colnames(pmat) == "which_null"])
+  control_genes <- as.logical(pmat[, colnames(pmat) == "control_genes"])
+  response_vec <- which_null[!control_genes]
+  fdp_vec <- c()
+  for (index in 1:sum(which_method)) {
+    if (which_method[index]) {
+        predictor <- stats::p.adjust(p = pmat[!control_genes, index], method = "BH")
+        fdp <- mean(response_vec[predictor < fdr])
+        if(is.nan(fdp)) {
+          fdp <- 0
+        }
+        fdp_vec <- c(fdp_vec, fdp)
+    }
+  }
+  names(fdp_vec) <- colnames(pmat)[which_method]
+  return(fdp_vec)
+}
+fdp_10 <- sapply(sout$pvalues, FUN = get_fdp, fdr = 0.1)
+dat <- as_data_frame(apply(as_data_frame(cbind(t(fdp_10), sout[, -1])), 2, unlist))
+
+d2 <- filter(dat, nullpi == 1)
+all(select(d2, ols:ruvb) == 0 | select(d2, ols:ruvb) == 1)
+
+sumdat <- dat %>% gather(key = "Method", value = "FDP", ols:ruvb) %>%
+  group_by(nullpi, Nsamp, ncontrols, Method) %>%
+  summarize(MeanFDP = mean(FDP)) %>%
+  ungroup()
+
+ggplot(sumdat, mapping = aes(x = Nsamp, y = MeanFDP, color = Method, linetype = Method)) +
+  facet_grid(nullpi ~ ncontrols) +
+  geom_line() +
+  theme_bw() +
+  geom_hline(yintercept = 0.1)
+```
+
+Same thing but with FDR control set to 0.05
+
+```{r}
+fdp_05 <- sapply(sout$pvalues, FUN = get_fdp, fdr = 0.05)
+dat <- as_data_frame(apply(as_data_frame(cbind(t(fdp_05), sout[, -1])), 2, unlist))
+
+d2 <- filter(dat, nullpi == 1)
+all(select(d2, ols:ruvb) == 0 | select(d2, ols:ruvb) == 1)
+
+sumdat <- dat %>% gather(key = "Method", value = "FDP", ols:ruvb) %>%
+  group_by(nullpi, Nsamp, ncontrols, Method) %>%
+  summarize(MeanFDP = mean(FDP)) %>%
+  ungroup()
+
+ggplot(sumdat, mapping = aes(x = Nsamp, y = MeanFDP, color = Method, linetype = Method)) +
+  facet_grid(nullpi ~ ncontrols) +
+  geom_line() +
+  theme_bw() +
+  geom_hline(yintercept = 0.05)
+```
+
+Notes:
+
+1. When the proportion of genes that are null is 1, then the y-axis corresponds to the proportion of times that a gene was found to be significant, which is equivalent to the family-wise error rate.
+2. RUVB works well for large sample sizes, but this cannot be said of the variance-inflation methods.
+3. In terms of calibration, RUV2 and RUV3 perform the best. In particular, see the scenario with 10 control genes and $\pi_0 = 0.9$ or $1$.
+4. OLS is always where it should be, right at the FDR control level. (because we are taking a mean of the FDP over the runs).
+
+```{r}
+sessionInfo()
+```
