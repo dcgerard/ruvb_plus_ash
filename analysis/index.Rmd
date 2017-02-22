@@ -7,7 +7,7 @@ output:
 
 ## Simulations
 
-* [RUVB Plus ASH Analysis](ruvb_plus_ash.html): I ran all the confounder adjustment methods when the true $\pi0$ is 0.9. Signal was added by poisson thinning. I then ran either ASH or qvalue on the resulting estimated effect sizes and their corresponding standard errors. The results indicate that
+* [RUVB Plus ASH Analysis](ruvb_plus_ash.html): I ran all the confounder adjustment methods when the true $\pi0$ is 0.9. Signal was added by poisson thinning. I then ran either ASH or qvalue on the resulting estimated effect sizes and their corresponding standard errors. Except for MOUTHWASH and BACKWASH, RUVB does the best.
 * [Look at Calibration of LFDR/LFSR's](ruvb_lfsr.html) MOUTHWASH is awesome. RUVB + ASH is awesome. RUVB by itself is not so awesome.
 * [Consistancy between seqgendiff and datamaker.R](compare_dg_seqgendiff.html)
 * [Recapitulate AUC plots from paper using the output from seqgendiff.](initial_pvalue_eda.html)
