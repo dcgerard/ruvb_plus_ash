@@ -1,0 +1,93 @@
+---
+title: "Coverage Variance"
+author: "David Gerard"
+date: "March 17, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Abstract
+Here, we look histograms of coverages.
+
+General conclusions:
+
+1. RUV2, RUV3, and RUVB are the winners.
+2. RUVB is very slightly undercovering, but has the best typical coverage (Median of coverages).
+3. The RUV4 methods extremely undercover under some scenarios.
+4. OLS is typically too conservative, but as theoretically expected has the correct average coverage.
+
+# Data Wrangling
+
+The coverage was calculated in the simulations run [here](https://github.com/dcgerard/ruvb_sims).
+
+Read in the coverage results:
+```{r}
+library(tidyverse)
+cov_mat <- read.csv("../../reproduce_ruv3/Output/sims_out/cov_mat2.csv")
+cov_mat$Nsamp <- cov_mat$Nsamp * 2 ## left-over from old code
+```
+
+Extract summary statistics
+
+```{r}
+longdat <- cov_mat %>% gather(key = "Method", value = "Coverage", -c(1:5)) %>%
+  select(-current_seed, -poisthin)
+
+sumdat <- longdat %>% group_by(nullpi, Nsamp, ncontrols, Method) %>%
+  summarize(Mean = mean(Coverage), Variance = var(Coverage), Median = median(Coverage), 
+            Lower = quantile(Coverage, probs = 0.025),
+            Upper = quantile(Coverage, probs = 0.975)) %>%
+  ungroup()
+```
+
+
+# Plots for 100 control genes
+
+Filter by the parameter settings of interest (ncontrols == 100, Nsamp == 6 or 40, and nullpi = 0.9).
+
+```{r}
+smalldat <- longdat %>% filter(Nsamp == 6 | Nsamp == 40, ncontrols == 100, nullpi == 0.9)
+small_sumdat <- sumdat %>% filter(Nsamp == 6 | Nsamp == 40, ncontrols == 100, nullpi == 0.9)
+```
+
+Plot results. Red dotted line is the mean coverage. The blue solid line is the median coverage. Black dashed line is at 0.95. RUVB is slightly under covering, but not too bad. I shifted the x-limits so that there are a lot of points not plotted for the super-skewed distributions (you can distinguish these based on where the blue and red lines are).
+
+```{r, fig.height=12}
+ggplot(data = smalldat, mapping = aes(x = Coverage)) +
+  geom_histogram( bins = 30, fill = "white", color = "black") +
+  facet_grid(Method~Nsamp) +
+  geom_vline(xintercept = 0.95, lty = 2) +
+  theme_bw() +
+  xlim(0.7, 1) +
+  theme(strip.background = element_rect(fill = "white")) +
+  geom_vline(data = small_sumdat, mapping = aes(xintercept = Mean), col = "red", lty = 3) +
+  geom_vline(data = small_sumdat, mapping = aes(xintercept = Median), col = "blue", lty = 1)
+```
+
+# Plots with 10 control genes
+
+```{r}
+smalldat <- longdat %>% filter(Nsamp == 6 | Nsamp == 40, ncontrols == 10, nullpi == 0.9)
+small_sumdat <- sumdat %>% filter(Nsamp == 6 | Nsamp == 40, ncontrols == 10, nullpi == 0.9)
+```
+
+Plot results. Red dotted line is the mean coverage. The blue solid line is the median coverage. Black dashed line is at 0.95.
+
+```{r, fig.height=12}
+ggplot(data = smalldat, mapping = aes(x = Coverage)) +
+  geom_histogram( bins = 30, fill = "white", color = "black") +
+  facet_grid(Method~Nsamp) +
+  geom_vline(xintercept = 0.95, lty = 2) +
+  theme_bw() +
+  xlim(0.7, 1) +
+  theme(strip.background = element_rect(fill = "white")) +
+  geom_vline(data = small_sumdat, mapping = aes(xintercept = Mean), col = "red", lty = 3) +
+  geom_vline(data = small_sumdat, mapping = aes(xintercept = Median), col = "blue", lty = 1)
+```
+
+```{r}
+sessionInfo()
+```
