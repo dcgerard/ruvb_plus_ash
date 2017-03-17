@@ -13,7 +13,7 @@ output:
 * [Recapitulate AUC plots from paper using the output from seqgendiff.](initial_pvalue_eda.html)
 * [Explore average FDR control of various methods](fdr_control.html)
 * [Explore variability of FDR control of various methods](fdp_variability.html)
-
+* [Explore variability in coverage results](coverage_variance.html). Don't see anything different here from what I have been seeing. Though it might be a little more clear.
 
 
 [rmarkdown]: http://rmarkdown.rstudio.com/rmarkdown_websites.htm
