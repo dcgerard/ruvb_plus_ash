@@ -1,0 +1,180 @@
+---
+title: "Variance Estimation Combinations"
+author: "David Gerard"
+date: "April 14, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Abstract
+
+This write-up is meant for me to code up all possible combinations of variance estimation and confounder adjustment approaches.
+
+# Simulate Data
+
+```{r}
+set.seed(545)
+n <- 11 ## number of samples
+p <- 101 ## number of genes
+q <- 3 ## number of confounders
+k <- 2 ## number of observed covariates
+m <- 23 ## number of controls
+
+sd_vec <- sqrt(rchisq(p, df = 5) / 5)
+
+is_zero <- rep(FALSE, length = p)
+is_zero[1:71] <- TRUE ## about 70% of genes are null
+ctl <- rep(FALSE, length = p)
+ctl[1:m] <- TRUE
+
+X <- matrix(rnorm(n * k), nrow = n)
+B <- matrix(rnorm(k * p), ncol = p)
+B[2, is_zero] <- 0
+Z <- matrix(rnorm(n * q), nrow = n)
+A <- matrix(rnorm(q * p), ncol = p)
+E <- matrix(rnorm(n * p), nrow = n) %*% diag(sd_vec)
+
+Y <- X %*% B + Z %*% A + E
+```
+
+# RUV built-in functions.
+
+The ruv R package provides a few built-in methods for estimating the variances.
+
+```{r}
+ruv2out <- ruv::RUV2(Y = Y, X = X[, 2, drop = FALSE],
+                     ctl = ctl, k = q, Z = X[, 1, drop = FALSE])
+ruv4out <- ruv::RUV4(Y = Y, X = X[, 2, drop = FALSE],
+                     ctl = ctl, k = q, Z = X[, 1, drop = FALSE])
+
+ruv2varout <- ruv::variance_adjust(fit = ruv2out)
+ruv4varout <- ruv::variance_adjust(fit = ruv4out)
+```
+
+Look and see the difference in the different estimates
+```{r}
+hist(ruv2varout$varbetahat) ## The default estimate
+hist(ruv2varout$varbetahat.rsvar) ## rescaled estimate using control genes
+hist(ruv2varout$varbetahat.ebayes) ## limma-shrunk variances
+hist(ruv2varout$varbetahat.rsvar.ebayes) ## rescaled estimate using control genes of limma-shrunk variances
+```
+
+Demonstrate that `ruv2varout$varbetahat.ebayes` is just limmashrunk form OLS variance estimates.
+```{r}
+limma_adjusted <- limma::squeezeVar(var = ruv2varout$varbetahat, df = ruv2varout$df)
+max(limma_adjusted$var.post - c(ruv2varout$varbetahat.ebayes))
+```
+
+Re-derive variance scaling by hand
+
+```{r}
+rsvar_hand <- mean(ruv2varout$betahat[ctl] ^ 2 / ruv2varout$sigma2[ctl]) * ruv2varout$sigma2
+max(rsvar_hand - ruv2varout$varbetahat.rsvar)
+```
+
+# All of the different CATE
+
+You can change the parameter `nc.var.correction` to be `TRUE` or `FALSE` for CATE's additive correction.
+
+You can also set `calibrate` to be `TRUE` or `FALSE` for median centering and MAD inflation.
+
+```{r}
+cout_pre <- cate::cate.fit(X.primary = X[, 2, drop = FALSE],
+                           X.nuis = X[, 1, drop = FALSE],
+                           Y = Y, r = q, fa.method = "pc", adj.method = "nc",
+                           nc = ctl, nc.var.correction = FALSE, calibrate = FALSE)
+
+cout_post <- cate::cate.fit(X.primary = X[, 2, drop = FALSE],
+                            X.nuis = X[, 1, drop = FALSE],
+                            Y = Y, r = q, fa.method = "pc", adj.method = "nc",
+                            nc = ctl, nc.var.correction = FALSE, calibrate = TRUE)
+
+beta_t_med <- median(cout_pre$beta.t)
+adjusted_t <- (cout_pre$beta.t - beta_t_med) / stats::mad(cout_pre$beta.t)
+
+max(cout_post$beta.t - adjusted_t)
+```
+
+Note that to just inflate variance by MAD rather than by median, just do MAD of betahat^2 / sigmahat^2. So I am just going to say that we use
+
+```{r}
+cout_sigma2 <- cout_pre$beta.cov.row * diag(cout_pre$beta.cov.col) / n
+max(cout_pre$beta.t - cout_pre$beta / sqrt(cout_sigma2))
+
+## MAD inflation
+stats::mad(cout_pre$beta^2 / cout_sigma2, center = 0)
+
+## Control Gene Inflation
+mean(cout_pre$beta[ctl]^2 / cout_sigma2[ctl])
+```
+
+
+Does `cout_pre` contain the unadjusted standard errors from `vruv4`
+
+It does, though cate uses a different multiplicative factor. Basically CATE does not account for the degrees of freedom.
+
+```{r}
+vout_gls <- vicar::vruv4(Y = Y, X = X, ctl = ctl, k = q, cov_of_interest = 2,
+                         likelihood = "normal", limmashrink = FALSE, include_intercept = FALSE)
+vout_ols <- vicar::vruv4(Y = Y, X = X, ctl = ctl, k = q, cov_of_interest = 2,
+                         likelihood = "normal", limmashrink = FALSE, gls = FALSE,
+                         include_intercept = FALSE)
+```
+
+First, `ruv::RUV4` returns the same result as `vicar::vruv4` with `gls` set to `FALSE`.
+
+```{r}
+plot(c(vout_ols$sebetahat_ols) ^ 2, ruv4out$sigma2 * ruv4out$multiplier, 
+     xlab = "vicar::vruv4 Var", ylab = "ruv::RUV4 VAR")
+abline(0, 1)
+```
+
+Now, the variances of `cate::cate` and `vicar::vruv4` are off by a multiplicative constant.
+
+```{r}
+plot(c(vout_gls$sebetahat_ols ^ 2), cout_sigma2)
+abline(0, 1)
+```
+
+`cate`'s `beta.cov.row` is the same as `vicar`'s `sigma2` --- but scaled differently. Specifically, `vicar` divideds by `n - k - q`, while `cate` divides just by `n - k`.
+```{r}
+vout_gls$sigma2 / cout_pre$beta.cov.row * (n - k - q) / (n - k)
+```
+
+`Gamma` in `cate` is the same as `alphahat` in `vicar`
+```{r}
+max(cout_pre$Gamma - vout_gls$alphahat)
+```
+
+`Z2` in `vicar` and `alpha` in `cate` differ only by a constant factor
+```{r}
+vout_gls$Z2 / cout_pre$alpha
+O <- t(qr.Q(qr(X), complete = TRUE))
+U <- O[1:2, ] %*% X
+U11 <- U[2:2, 2:2, drop = FALSE]
+U11 ## Just the last lower-triangular element in the R of the QR decomposition of X
+```
+
+Here is how `cate` calculates `beta.cov.col`
+```{r}
+cout_pre$beta.cov.col
+solve(crossprod(X) / n)[2, 2] + crossprod(vout_gls$Z2) / U11 ^ 2 ## U11 is lower term in lower triangular matrix of QR decomposition of X.
+```
+
+We can get equivalence between `cate` and `vicar` by changing `n` above to `n-k`.
+
+```{r}
+XZ <- cbind(X, vout_gls$Zhat)
+mult_val <- solve(crossprod(XZ))[2,2]
+mult_val
+(solve(crossprod(X) / (n - 2))[2, 2] + crossprod(vout_gls$Z2) / U11 ^ 2 ) / (n - 2) ## Divide by n-k instead of n to get equivalence.
+```
+
+Asymptotically, these variance estimates are the same, but can differ bigly in when the sample size is small.
+
+```{r}
+sessionInfo()
+```

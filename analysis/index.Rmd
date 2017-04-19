@@ -14,6 +14,8 @@ output:
 * [Explore average FDR control of various methods](fdr_control.html)
 * [Explore variability of FDR control of various methods](fdp_variability.html)
 * [Explore variability in coverage results](coverage_variance.html). Don't see anything different here from what I have been seeing. Though it might be a little more clear.
+* [When simulating under the assumed model, MOUTHWASH usually returns variance inflation factors less than 1.](vicar_t.html)
+* [CATE does not adjust for df. This makes its variances very small for small sample sizes](var_code.html). Here, I also show equivalence between vicar's functions and cate and RUV4's functions.
 
 
 [rmarkdown]: http://rmarkdown.rstudio.com/rmarkdown_websites.htm
