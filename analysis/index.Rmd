@@ -16,7 +16,7 @@ output:
 * [Explore variability in coverage results](coverage_variance.html). Don't see anything different here from what I have been seeing. Though it might be a little more clear.
 * [When simulating under the assumed model, MOUTHWASH usually returns variance inflation factors less than 1.](vicar_t.html)
 * [CATE does not adjust for df. This makes its variances very small for small sample sizes](var_code.html). Here, I also show equivalence between vicar's functions and cate and RUV4's functions.
-
+* [Limma is scale-equivariant, recalculate limma-shrunk variances in RUV4 using three different approaches](limma_shrink.html)
 
 [rmarkdown]: http://rmarkdown.rstudio.com/rmarkdown_websites.htm
 [rstudio]: https://www.rstudio.com/products/rstudio/download/preview/

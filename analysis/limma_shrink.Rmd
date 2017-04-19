@@ -1,0 +1,91 @@
+---
+title: "Limma Shrinkage"
+author: "David Gerard"
+date: "April 19, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Abstract
+
+Check the scale equivariance of limma-shrinkage. See if I can reproduce the `ruv` package's limmashrinkage.
+
+# Limma is scale-equivariant
+
+Generate data.
+
+```{r}
+n <- 101
+sigma2 <- rchisq(n, df = 5) / 5
+df <- sample(4:7, size = n, replace = TRUE)
+```
+
+Show that it doesn't matter if you squeeze sigma2 or sebetahat:
+```{r}
+const <- 5
+limout <- limma::squeezeVar(var = sigma2, df = df)
+sigma2_l <- limout$var.post
+
+limout_const <- limma::squeezeVar(var = sigma2 / const, df = df) 
+sigma2_cl <- limout_const$var.post * const
+
+plot(sigma2_cl, sigma2_l)
+abline(0, 1)
+```
+
+# Reproduce the output of `ruv::RUV4` using `vicar` package with limma-shrinkage.
+```{r}
+rm(list = ls())
+set.seed(545)
+n <- 11 ## number of samples
+p <- 101 ## number of genes
+q <- 3 ## number of confounders
+k <- 2 ## number of observed covariates
+m <- 23 ## number of controls
+
+sd_vec <- sqrt(rchisq(p, df = 5) / 5)
+
+is_zero <- rep(FALSE, length = p)
+is_zero[1:71] <- TRUE ## about 70% of genes are null
+ctl <- rep(FALSE, length = p)
+ctl[1:m] <- TRUE
+
+X <- matrix(rnorm(n * k), nrow = n)
+B <- matrix(rnorm(k * p), ncol = p)
+B[2, is_zero] <- 0
+Z <- matrix(rnorm(n * q), nrow = n)
+A <- matrix(rnorm(q * p), ncol = p)
+E <- matrix(rnorm(n * p), nrow = n) %*% diag(sd_vec)
+
+Y <- X %*% B + Z %*% A + E
+```
+
+Three ways to calculate limma-shrunk variances in RUV4.
+
+```{r}
+vout_ols <- vicar::vruv4(Y = Y, X = X, ctl = ctl, k = q, cov_of_interest = 2,
+                         likelihood = "normal", limmashrink = TRUE, gls = FALSE,
+                         include_intercept = FALSE)
+ruv4out <- ruv::RUV4(Y = Y, X = X[, 2, drop = FALSE],
+                     ctl = ctl, k = q, Z = X[, 1, drop = FALSE])
+ruv4rsvarout <- ruv::variance_adjust(ruv4out)
+
+v_simp <- vicar::vruv4(Y = Y, X = X, ctl = ctl, k = q, cov_of_interest = 2,
+                       likelihood = "normal", limmashrink = FALSE, gls = FALSE,
+                       include_intercept = FALSE)
+lout3 <- limma::squeezeVar(v_simp$sebetahat_ols ^ 2, df = n - k - q)
+
+plot(ruv4rsvarout$varbetahat.ebayes, vout_ols$sebetahat_ols ^ 2)
+abline(0, 1)
+
+plot(ruv4rsvarout$varbetahat.ebayes, lout3$var.post)
+abline(0, 1)
+```
+
+
+```{r}
+sessionInfo()
+```
