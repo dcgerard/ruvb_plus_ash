@@ -1,0 +1,283 @@
+---
+title: "Coverage Plot in RUVB Paper"
+author: "Matthew Stephens"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+<!-- The file analysis/chunks.R contains chunks that define default settings
+shared across the workflowr files. -->
+```{r read-chunk, include=FALSE, cache=FALSE}
+knitr::read_chunk("chunks.R")
+```
+
+# Abstract
+
+Here, I make some exploratory plots from the output of the [RUVB paper simulations](https://github.com/dcgerard/ruvb_sims/blob/master/R/sims_ruv3paper_sims.R). I ultimately make a suggestion on Coverage plots.
+
+# Key
+
+Here, I explore six mean methods:
+
+* OLS (no confounder adjustment)
+* CATE
+* RUV4
+* RUV3
+* RUV2
+* RUVB
+
+I estimate the variances with the mean methods in different combinations. The key for this is:
+
+* o = Original.
+* n = Normal or $t$ approximation for the likelihood in RUVB.
+* m = MAD variance inflation.
+* c = control-gene calibrated.
+* l = Limma-adjusted.
+* lb = limma-adjusted Before GLS (for either CATE or RUV3).
+* la = limma-adjusted After GLS (for either CATE or RUV3).
+* d = Delta-adjustment from CATE package (additive variance inflation).
+
+# Coverage Plots
+First, I make a large boxplot of coverage.
+
+```{r, fig.height=15, fig.width=15}
+library(tidyverse)
+library(stringr)
+covdat <- read_csv(file = "../../reproduce_ruv3/Output/sims_out/cov_mat2.csv")
+left_vals <- toupper(str_replace(str_extract(names(covdat)[-(1:5)], "^.+_"), "_", ""))
+right_vals <- str_replace(str_extract(names(covdat)[-(1:5)], "_.+$"), "_", "")
+name_vec <- c("Seed", "Pi0", "SampleSize", "NControls", "Poisthin",
+              paste0(left_vals, right_vals))
+name_vec[(length(name_vec) - 2):length(name_vec)] <- 
+  paste0("RUVB", stringr::str_replace(string = names(covdat)[(length(name_vec) - 2):length(name_vec)],
+                                      pattern = "(ruvb)(.*+)", replace = "\\2"))
+names(covdat) <- name_vec
+covdat <- select(covdat, -Seed, -Poisthin)
+
+longdat <- gather(data = covdat, key = "Method", value = "Coverage", -(1:3))
+p <- ggplot(data = longdat, mapping = aes(y = Coverage, x = Method)) +
+  geom_boxplot(outlier.size = 0.2, size = 0.2) +
+  facet_grid(Pi0 + NControls ~ SampleSize) +
+  geom_hline(yintercept = 0.95, lty = 2) +
+  xlab("Method") + ylab("Coverage") +
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  theme(strip.background = element_rect(fill="white")) +
+  ggtitle("Coverage")
+print(p)
+```
+
+This plot is super busy and hard to wrap my mind around, but we can include a large version of it in the supplementary material. We will calculate medians for each method, then just print out the best performing method in terms of median coverage. RUVB (not RUVBn or RUVBnl) and CATEdl are the best.
+
+```{r}
+meddat <- longdat %>% group_by(Pi0, SampleSize, NControls, Method) %>%
+  summarise(Median = median(Coverage), Mean = mean(Coverage)) %>%
+  ungroup()
+
+meddat$Diff <- meddat$Median - 0.95
+
+get_best <- function(Method, Diff) {
+  Method[which.min(abs(Diff))]
+}
+bestdat <- meddat %>% group_by(Pi0, SampleSize, NControls) %>%
+  summarise(Best = get_best(Method, Diff))
+table(bestdat$Best)
+```
+
+
+Get the median coverage rankings within each scenario.
+```{r}
+get_ranks <- function(Diff) {
+  rank(abs(Diff))
+}
+meddat <- meddat %>% group_by(Pi0, SampleSize, NControls) %>%
+  mutate(Rank = get_ranks(Diff)) %>%
+  ungroup()
+```
+
+Boxplot of ranks. Note that RUVB is always one of the best ones.
+```{r}
+ggplot(data = meddat, mapping = aes(x = Method, y = Rank)) +
+  geom_boxplot() +
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  theme(strip.background = element_rect(fill="white"))
+```
+
+So RUVB has the best "typical coverage". That is, the median coverage.
+
+Now I will go and just look at the CATE methods, the RUV4 methods, the RUV3 methods, the RUV2 methods, the RUVB methods, and the OLS methods.
+
+First, OLS:
+```{r}
+tempdat <- meddat %>% filter(str_detect(Method, "OLS"))
+ggplot(data = tempdat, mapping = aes(x = SampleSize, y = Median, color = Method, lty = Method)) +
+  geom_line() +
+  facet_grid(NControls ~ Pi0) +
+  geom_hline(yintercept = 0.95, lty = 2) +
+  theme_bw() + theme(strip.background = element_rect(fill = "white")) +
+  ggtitle("Median Coverage for OLS")
+```
+
+RUV2:
+```{r}
+tempdat <- meddat %>% filter(str_detect(Method, "RUV2"))
+ggplot(data = tempdat, mapping = aes(x = SampleSize, y = Median, color = Method, lty = Method)) +
+  geom_line() +
+  facet_grid(NControls ~ Pi0) +
+  geom_hline(yintercept = 0.95, lty = 2) +
+  theme_bw() + theme(strip.background = element_rect(fill = "white")) +
+  ggtitle("Median Coverage for RUV2")
+```
+
+RUV3:
+```{r}
+tempdat <- meddat %>% filter(str_detect(Method, "RUV3"))
+ggplot(data = tempdat, mapping = aes(x = SampleSize, y = Median, color = Method, lty = Method)) +
+  geom_line() +
+  facet_grid(NControls ~ Pi0) +
+  geom_hline(yintercept = 0.95, lty = 2) +
+  theme_bw() + theme(strip.background = element_rect(fill = "white")) +
+  ggtitle("Median Coverage for RUV3")
+```
+
+RUV4: RUV4 has similar behavior to the CATE methods.
+```{r}
+tempdat <- meddat %>% filter(str_detect(Method, "RUV4"))
+ggplot(data = tempdat, mapping = aes(x = SampleSize, y = Median, color = Method, lty = Method)) +
+  geom_line() +
+  facet_grid(NControls ~ Pi0) +
+  geom_hline(yintercept = 0.95, lty = 2) +
+  theme_bw() + theme(strip.background = element_rect(fill = "white")) +
+  ggtitle("Median Coverage for RUV4")
+```
+
+CATE: CATEd works really well when m = 100. None of the methods work well when m = 10 and pi0 = 0.5.
+```{r}
+tempdat <- meddat %>% filter(str_detect(Method, "CATE"))
+ggplot(data = tempdat, mapping = aes(x = SampleSize, y = Median, color = Method)) +
+  geom_line() +
+  facet_grid(NControls ~ Pi0) +
+  geom_hline(yintercept = 0.95, lty = 2) +
+  theme_bw() + theme(strip.background = element_rect(fill = "white")) +
+  ggtitle("Median Coverage for CATE")
+```
+
+RUVB: RUVB works the best. RUVn and RUVBnl are a little conservative. But I use the t distribution instead of the normal, so this might go away if I use normal instead.
+```{r}
+tempdat <- meddat %>% filter(str_detect(Method, "RUVB"))
+ggplot(data = tempdat, mapping = aes(x = SampleSize, y = Median, color = Method, lty = Method)) +
+  geom_line() +
+  facet_grid(NControls ~ Pi0) +
+  geom_hline(yintercept = 0.95, lty = 2) +
+  theme_bw() + theme(strip.background = element_rect(fill = "white")) +
+  ggtitle("Median Coverage for RUVB")
+```
+
+# Loss function
+How bad is bad coverage? Since there is asymetry in the coverage, I don't think MSE is the best measure, but we can look at it. I could re-do the simulations and also include the lengths of the confidence intervals?
+
+But in terms of the minimum mean MSE (averaging across all scenarios), RUV2m does the best. From the boxplots, RUV2m is a little conservative at Pi0 = 0.5 and a little anti-conservative at Pi0 = 1. RUVBnl also does pretty well. 
+
+```{r}
+get_mse095 <- function(Coverage) {
+  mean((Coverage - 0.95) ^ 2)
+}
+msedat <- longdat %>% group_by(Pi0, SampleSize, NControls, Method) %>%
+  summarize(MSE = get_mse095(Coverage)) %>%
+  ungroup()
+temp <- msedat %>% group_by(Method) %>% summarize(Mean = mean(MSE))
+temp$Method[order(temp$Mean)]
+min_mse <- min(temp$Mean)
+ggplot(data = msedat, mapping = aes(x = Method, y = MSE)) +
+  geom_boxplot() +
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  theme(strip.background = element_rect(fill="white")) +
+  geom_hline(yintercept = min_mse, lty = 2)
+```
+
+# Compare "m" vs "c" vs "lm" vs "lc"
+
+I am going to extract "m", "c", "lm", and "lc" methods and plot them together.
+
+The *"m" methods* all have very similar behavior (except for OLSm). They are too conservative at Pi0 = 0.5 and they are too anti-conservative at Pi0 = 1.
+```{r}
+mdata <- longdat %>% filter(stringr::str_detect(Method, "(?<!l|la|lb)m$"))
+unique(mdata$Method)
+pl <- ggplot(data = mdata, mapping = aes(y = Coverage, x = Method)) +
+  geom_boxplot(outlier.size = 0.2, size = 0.2) +
+  facet_grid(Pi0 + NControls ~ SampleSize) +
+  geom_hline(yintercept = 0.95, lty = 2) +
+  xlab("Method") + ylab("Coverage") +
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  theme(strip.background = element_rect(fill="white")) +
+  ggtitle("Coverage")
+print(pl)
+
+```
+
+The *limma-m* methods. CATElbm and RUV3lbm (the limma BEFORE GLS methods) behave similarly while the rest of the limma methods behave similarly. Again, we see conservative behavior at Pi0 = 0.5 and anticonservative behavior at Pi0 = 1.
+```{r}
+lmdata <- longdat %>% filter(stringr::str_detect(Method, "(lm|lam|lbm)$"))
+unique(lmdata$Method)
+pl <- ggplot(data = lmdata, mapping = aes(y = Coverage, x = Method)) +
+  geom_boxplot(outlier.size = 0.2, size = 0.2) +
+  facet_grid(Pi0 + NControls ~ SampleSize) +
+  geom_hline(yintercept = 0.95, lty = 2) +
+  xlab("Method") + ylab("Coverage") +
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  theme(strip.background = element_rect(fill="white")) +
+  ggtitle("Coverage")
+print(pl)
+```
+
+The "c" methods. I might have some problem with RUV3c --- it works very very poorly for large n and small number of control genes (I've deleted many of those points from the below boxplot). Otherwise, they are all too conservative at small n or small m and work great for large n and large m. This is different behavior from what I originally saw, so I am wondering if I made a mistake here.
+```{r}
+cdata <- longdat %>% filter(stringr::str_detect(Method, "(?<!l|la|lb)c$"))
+unique(cdata$Method)
+pl <- ggplot(data = cdata, mapping = aes(y = Coverage, x = Method)) +
+  geom_boxplot(outlier.size = 0.2, size = 0.2) +
+  facet_grid(Pi0 + NControls ~ SampleSize) +
+  geom_hline(yintercept = 0.95, lty = 2) +
+  xlab("Method") + ylab("Coverage") +
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  theme(strip.background = element_rect(fill="white")) +
+  ggtitle("Coverage") +
+  ylim(0.85, 1)
+print(pl)
+```
+
+The "lc" methods. I am again seeing similar behavior. Very conservative everywhere except for large n and m. Again, the RUV3c methods don't work too well (points removed).
+```{r}
+lcdata <- longdat %>% filter(stringr::str_detect(Method, "(lc|lac|lbc)$"))
+unique(lcdata$Method)
+pl <- ggplot(data = lcdata, mapping = aes(y = Coverage, x = Method)) +
+  geom_boxplot(outlier.size = 0.2, size = 0.2) +
+  facet_grid(Pi0 + NControls ~ SampleSize) +
+  geom_hline(yintercept = 0.95, lty = 2) +
+  xlab("Method") + ylab("Coverage") +
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  theme(strip.background = element_rect(fill="white")) +
+  ggtitle("Coverage") +
+  ylim(0.8, 1)
+print(pl)
+```
+
+The non "c" and "m" methods.
+```{r, fig.height=9, fig.width=9}
+ncmdata <- longdat %>% filter(!stringr::str_detect(Method, "(c|m|l|la|lb)$"))
+unique(ncmdata$Method)
+pl <- ggplot(data = ncmdata, mapping = aes(y = Coverage, x = Method)) +
+  geom_boxplot(outlier.size = 0.2, size = 0.2) +
+  facet_grid(Pi0 + NControls ~ SampleSize) +
+  geom_hline(yintercept = 0.95, lty = 2) +
+  xlab("Method") + ylab("Coverage") +
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  theme(strip.background = element_rect(fill="white")) +
+  ggtitle("Coverage")
+print(pl)
+```
+
+# Session information
+
+<!-- Insert the session information into the document -->
+```{r session-info}
+```

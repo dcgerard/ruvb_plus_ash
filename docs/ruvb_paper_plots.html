@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+<meta name="author" content="Matthew Stephens" />
+
+<meta name="date" content="2017-04-26" />
+
+<title>AUC Plot in RUVB Paper</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-1.1/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-1.1/highlight.js"></script>
+<link href="site_libs/font-awesome-4.5.0/css/font-awesome.min.css" rel="stylesheet" />
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs && document.readyState && document.readyState === "complete") {
+   window.setTimeout(function() {
+      hljs.initHighlighting();
+   }, 0);
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 51px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+
+.section h2 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h3 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h4 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h5 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h6 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+  padding-left: 25px;
+  text-indent: 0;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">ruvb_plus_ash</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/jdblischak/workflowr">
+    <span class="fa fa-github"></span>
+     
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">AUC Plot in RUVB Paper</h1>
+<h4 class="author"><em>Matthew Stephens</em></h4>
+<h4 class="date"><em>2017-04-26</em></h4>
+
+</div>
+
+
+<!-- The file analysis/chunks.R contains chunks that define default settings
+shared across the workflowr files. -->
+<div id="abstract" class="section level1">
+<h1>Abstract</h1>
+<p>Here, I make some exploratory plots from the output of the <a href="https://github.com/dcgerard/ruvb_sims/blob/master/R/sims_ruv3paper_sims.R">RUVB paper simulations</a>. I ultimately make a suggestion on AUC plots.</p>
+</div>
+<div id="key" class="section level1">
+<h1>Key</h1>
+<p>Here, I explore six mean methods:</p>
+<ul>
+<li>OLS (no confounder adjustment)</li>
+<li>CATE</li>
+<li>RUV4</li>
+<li>RUV3</li>
+<li>RUV2</li>
+<li>RUVB</li>
+</ul>
+<p>I estimate the variances with the mean methods in different combinations. The key for this is:</p>
+<ul>
+<li>o = Original.</li>
+<li>n = Normal or <span class="math inline">\(t\)</span> approximation for the likelihood in RUVB.</li>
+<li>m = MAD variance inflation.</li>
+<li>c = control-gene calibrated.</li>
+<li>l = Limma-adjusted.</li>
+<li>lb = limma-adjusted Before GLS (for either CATE or RUV3).</li>
+<li>la = limma-adjusted After GLS (for either CATE or RUV3).</li>
+<li>d = Delta-adjustment from CATE package (additive variance inflation).</li>
+</ul>
+</div>
+<div id="auc-plots" class="section level1">
+<h1>AUC Plots</h1>
+<p>The “c” and “m” variants of methods theoretically must have the same AUC as the original method. That is, the groups of methods that have the same AUC are:</p>
+<ul>
+<li>CATEo, CATEc, CATEm,</li>
+<li>CATEd, CATEdc, CATEdm,</li>
+<li>CATEla, CATElac, CATElam,</li>
+<li>CATElb, CATElbc, CATElbm,</li>
+<li>CATEdl, CATEdlc, CATEdlm,</li>
+<li>RUV4o, RUV4c, RUV4m,</li>
+<li>RUV4l, RUV4lc, RUV4lm,</li>
+<li>OLSo, OLSc, OLSm,</li>
+<li>OLSl, OLSlc, OLSlm,</li>
+<li>RUV2o, RUV2c, RUV2m,</li>
+<li>RUV2l, RUV2lc, RUV2lm,</li>
+<li>RUV3o, RUV3c, RUV3m,</li>
+<li>RUV3la, RUV3lac, RUV3lam,</li>
+<li>RUV3lb, RUV3lbc, RUV3lbm,</li>
+<li>RUVB, RUVBn</li>
+<li>RUVBnl</li>
+</ul>
+<p>It turns out that RUVBnl always has the highest (mean/median) AUC, particularly when there are only 10 control genes (as opposed to 100). The hard part will then be making a plot appropriate for the paper.</p>
+<pre class="r"><code>library(tidyverse)</code></pre>
+<pre><code>## Loading tidyverse: ggplot2
+## Loading tidyverse: tibble
+## Loading tidyverse: tidyr
+## Loading tidyverse: readr
+## Loading tidyverse: purrr
+## Loading tidyverse: dplyr</code></pre>
+<pre><code>## Conflicts with tidy packages ----------------------------------------------</code></pre>
+<pre><code>## filter(): dplyr, stats
+## lag():    dplyr, stats</code></pre>
+<pre class="r"><code>library(stringr)
+aucdat &lt;- read_csv(file = &quot;../../reproduce_ruv3/Output/sims_out/auc_mat2.csv&quot;)</code></pre>
+<pre><code>## Parsed with column specification:
+## cols(
+##   .default = col_double(),
+##   current_seed = col_integer(),
+##   Nsamp = col_integer(),
+##   ncontrols = col_integer(),
+##   poisthin = col_logical()
+## )</code></pre>
+<pre><code>## See spec(...) for full column specifications.</code></pre>
+<pre class="r"><code>left_vals &lt;- toupper(str_replace(str_extract(names(aucdat)[-(1:5)], &quot;^.+_&quot;), &quot;_&quot;, &quot;&quot;))
+right_vals &lt;- str_replace(str_extract(names(aucdat)[-(1:5)], &quot;_.+$&quot;), &quot;_&quot;, &quot;&quot;)
+name_vec &lt;- c(&quot;Seed&quot;, &quot;Pi0&quot;, &quot;SampleSize&quot;, &quot;NControls&quot;, &quot;Poisthin&quot;,
+              paste0(left_vals, right_vals))
+name_vec[(length(name_vec) - 2):length(name_vec)] &lt;- 
+  paste0(&quot;RUVB&quot;, stringr::str_replace(string = names(aucdat)[(length(name_vec) - 2):length(name_vec)],
+                                      pattern = &quot;(ruvb)(.*+)&quot;, replace = &quot;\\2&quot;))
+names(aucdat) &lt;- name_vec
+
+keep_vec &lt;- c(&quot;Pi0&quot;, &quot;SampleSize&quot;, &quot;NControls&quot;, &quot;OLSo&quot;, &quot;OLSl&quot;, &quot;RUV2o&quot;, &quot;RUV2l&quot;,
+              &quot;RUV3o&quot;, &quot;RUV3la&quot;, &quot;RUV3lb&quot;, &quot;RUV4o&quot;, &quot;RUV4l&quot;, &quot;CATEo&quot;, &quot;CATEd&quot;, 
+              &quot;CATEla&quot;, &quot;CATElb&quot;, &quot;CATEdl&quot;, &quot;RUVB&quot;, &quot;RUVBnl&quot; )
+
+ddat &lt;- select_(aucdat, .dots = keep_vec)
+diff_mat &lt;- bind_cols(ddat[, 1:3], ddat[, -c(1:3)] - c(ddat$RUVBnl))
+diff_mat &lt;- select(diff_mat, -RUVBnl)
+
+longdat &lt;- gather(data = diff_mat, key = &quot;Method&quot;, value = &quot;AUC&quot;, -(1:3)) %&gt;%
+  filter(Pi0 != 1)
+p &lt;- ggplot(data = longdat, mapping = aes(y = AUC, x = Method)) +
+  geom_boxplot(outlier.size = 0.2, size = 0.2) +
+  facet_grid(Pi0 + NControls ~ SampleSize) +
+  geom_hline(yintercept = 0, lty = 2) +
+  xlab(&quot;Method&quot;) + ylab(&quot;Difference in AUC&quot;) +
+  ylim(-0.2, max(longdat$AUC)) +
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  theme(strip.background = element_rect(fill=&quot;white&quot;)) +
+  ggtitle(&quot;Difference in AUC from RUVBnl&quot;)
+print(p)</code></pre>
+<pre><code>## Warning: Removed 360 rows containing non-finite values (stat_boxplot).</code></pre>
+<p><img src="ruvb_paper_plots_files/figure-html/unnamed-chunk-1-1.png" width="864" /></p>
+<p>The “non-finite” values just results because I put a minimum value of -0.2 on the y-limits.</p>
+<p>I can simplify the above plot by just showing the median.</p>
+<pre class="r"><code>med_dat &lt;- group_by(.data = longdat, Pi0, SampleSize, NControls, Method) %&gt;%
+  summarise(Mean = mean(AUC), Median = median(AUC)) %&gt;%
+  ungroup()
+
+
+pl &lt;- ggplot(data = filter(med_dat, Pi0 == 0.5),
+       mapping = aes(x = SampleSize, y = Mean, lty = Method, color = Method)) +
+  facet_grid(NControls ~.) +
+  geom_line() +
+  theme_bw() +
+  ggtitle(&quot;Mean AUC Diff for Pi0 = 0.5&quot;) +
+  geom_hline(yintercept = 0, lty = 2)
+print(pl)</code></pre>
+<p><img src="ruvb_paper_plots_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
+<pre class="r"><code>pl &lt;- ggplot(data = filter(med_dat, Pi0 == 0.5),
+       mapping = aes(x = SampleSize, y = Median, lty = Method, color = Method)) +
+  facet_grid(NControls ~.) +
+  geom_line() +
+  theme_bw() +
+  ggtitle(&quot;Median AUC Diff for Pi0 = 0.5&quot;) +
+  geom_hline(yintercept = 0, lty = 2)
+print(pl)</code></pre>
+<p><img src="ruvb_paper_plots_files/figure-html/unnamed-chunk-2-2.png" width="672" /></p>
+<pre class="r"><code>pl &lt;- ggplot(data = filter(med_dat, Pi0 == 0.9),
+       mapping = aes(x = SampleSize, y = Mean, lty = Method, color = Method)) +
+  facet_grid(NControls ~.) +
+  geom_line() +
+  theme_bw() +
+  ggtitle(&quot;Mean AUC Diff for Pi0 = 0.9&quot;) +
+  geom_hline(yintercept = 0, lty = 2)
+print(pl)</code></pre>
+<p><img src="ruvb_paper_plots_files/figure-html/unnamed-chunk-2-3.png" width="672" /></p>
+<pre class="r"><code>pl &lt;- ggplot(data = filter(med_dat, Pi0 == 0.9),
+       mapping = aes(x = SampleSize, y = Median, lty = Method, color = Method)) +
+  facet_grid(NControls ~.) +
+  geom_line() +
+  theme_bw() +
+  ggtitle(&quot;Median AUC Diff for Pi0 = 0.9&quot;) +
+  geom_hline(yintercept = 0, lty = 2)
+print(pl)</code></pre>
+<p><img src="ruvb_paper_plots_files/figure-html/unnamed-chunk-2-4.png" width="672" /></p>
+<p>There isn’t really any difference between Pi0 = 0.5 and Pi0 = 0.9 and the mean and median seem to show the same story.</p>
+<p>We can include the above boxplot in the supplementary material. But there are certainly methods that perform similarly. Specifically, these groups more or less behave similarly and we can probably only include the best performing method among these groups:</p>
+<ul>
+<li>CATEd, CATEo, and RUV4o</li>
+<li>CATEdl, CATEla, CATElb, and RUV4l</li>
+<li>OLSl and OLSo</li>
+<li>RUV2la nd RUV2o</li>
+<li>RUV3la and RUV3lb</li>
+<li>RUV3o</li>
+<li>RUVB</li>
+</ul>
+<p>I will demonstrate the equivalence in behavior between those groups now.</p>
+<p>The non-limma RUV4 methods have similar trends. Though it seems that CATEd works best and should be included of these.</p>
+<pre class="r"><code>dat &lt;- filter(med_dat, Pi0 == 0.5, Method %in% c(&quot;CATEd&quot;, &quot;CATEo&quot;, &quot;RUV4o&quot;))
+pl &lt;- ggplot(data = dat,
+       mapping = aes(x = SampleSize, y = Mean, lty = Method, color = Method)) +
+  facet_grid(NControls ~.) +
+  geom_line() +
+  theme_bw() +
+  ggtitle(&quot;Mean AUC Diff for CATEd, CATEo, and RUV4 when Pi0 = 0.5&quot;) +
+  geom_hline(yintercept = 0, lty = 2)
+print(pl)</code></pre>
+<p><img src="ruvb_paper_plots_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+<p>The RUV4 Limma methods have similar trends. Again, we should probably include CATEdl among these.</p>
+<pre class="r"><code>dat &lt;- filter(med_dat, Pi0 == 0.5, Method %in% c(&quot;CATEdl&quot;, &quot;CATEla&quot;, &quot;CATElb&quot;, &quot;RUV4l&quot;))
+pl &lt;- ggplot(data = dat,
+       mapping = aes(x = SampleSize, y = Mean, lty = Method, color = Method)) +
+  facet_grid(NControls ~.) +
+  geom_line() +
+  theme_bw() +
+  ggtitle(&quot;Mean AUC Diff for CATEdl, CATEla, CATElb, and RUV4l when Pi0 = 0.5&quot;) +
+  geom_hline(yintercept = 0, lty = 2)
+print(pl)</code></pre>
+<p><img src="ruvb_paper_plots_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<p>Note that it is always better to use GLS (CATE) rather than OLS (RUV4).</p>
+<p>The OLS methods perform poorly, with OLSl performing slightly better.</p>
+<pre class="r"><code>dat &lt;- filter(med_dat, Pi0 == 0.5, Method %in% c(&quot;OLSo&quot;, &quot;OLSl&quot;))
+pl &lt;- ggplot(data = dat,
+       mapping = aes(x = SampleSize, y = Mean, lty = Method, color = Method)) +
+  facet_grid(NControls ~.) +
+  geom_line() +
+  theme_bw() +
+  ggtitle(&quot;Mean AUC Diff for OLSo and OLSl when Pi0 = 0.5&quot;) +
+  geom_hline(yintercept = 0, lty = 2)
+print(pl)</code></pre>
+<p><img src="ruvb_paper_plots_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<p>The RUV2 methods. RUV2l works better.</p>
+<pre class="r"><code>dat &lt;- filter(med_dat, Pi0 == 0.5, Method %in% c(&quot;RUV2o&quot;, &quot;RUV2l&quot;))
+pl &lt;- ggplot(data = dat,
+       mapping = aes(x = SampleSize, y = Mean, lty = Method, color = Method)) +
+  facet_grid(NControls ~.) +
+  geom_line() +
+  theme_bw() +
+  ggtitle(&quot;Mean AUC Diff for RUV2o and RUV2l when Pi0 = 0.5&quot;) +
+  geom_hline(yintercept = 0, lty = 2)
+print(pl)</code></pre>
+<p><img src="ruvb_paper_plots_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<p>The RUV3 methods. RUV3o seems to have a similar trend to the RUV2 methods. RUV3lb works slightly better than RUV3la and has relatively flat performance relative to RUVBnl.</p>
+<pre class="r"><code>dat &lt;- filter(med_dat, Pi0 == 0.5, Method %in% c(&quot;RUV3o&quot;, &quot;RUV3la&quot;, &quot;RUV3lb&quot;))
+pl &lt;- ggplot(data = dat,
+       mapping = aes(x = SampleSize, y = Mean, lty = Method, color = Method)) +
+  facet_grid(NControls ~.) +
+  geom_line() +
+  theme_bw() +
+  ggtitle(&quot;Mean AUC Diff for RUV3 methods when Pi0 = 0.5&quot;) +
+  geom_hline(yintercept = 0, lty = 2)
+print(pl)</code></pre>
+<p><img src="ruvb_paper_plots_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<p>The RUVB method works almost as well as RUVBnl, but is always lower.</p>
+<pre class="r"><code>dat &lt;- filter(med_dat, Pi0 == 0.5, Method %in% c(&quot;RUVB&quot;))
+pl &lt;- ggplot(data = dat,
+       mapping = aes(x = SampleSize, y = Mean, lty = Method, color = Method)) +
+  facet_grid(NControls ~.) +
+  geom_line() +
+  theme_bw() +
+  ggtitle(&quot;Mean AUC Diff for RUVB when Pi0 = 0.5&quot;) +
+  geom_hline(yintercept = 0, lty = 2)
+print(pl)</code></pre>
+<p><img src="ruvb_paper_plots_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+<p>Paper plot: Mean AUC from a method subtracted from the mean AUC from RUVBnl. Anything below 0 (the dashed line) indicates superior performance of RUVBnl.</p>
+<pre class="r"><code>dat &lt;- filter(med_dat, Pi0 == 0.5, Method %in% c(&quot;RUV2l&quot;, &quot;RUV3lb&quot;, &quot;CATEd&quot;, &quot;CATEdl&quot;))
+pl &lt;- ggplot(data = dat,
+       mapping = aes(x = SampleSize, y = Mean, lty = Method, color = Method)) +
+  facet_grid(NControls ~.) +
+  geom_line() +
+  theme_bw() +
+  geom_hline(yintercept = 0, lty = 2) +
+  theme(strip.background = element_rect(fill = &quot;white&quot;)) +
+  ylab(&quot;Mean Difference from RUVBnl&quot;) +
+  xlab(&quot;Sample Size&quot;)
+print(pl)</code></pre>
+<p><img src="ruvb_paper_plots_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+<div id="summary-of-auc" class="section level2">
+<h2>Summary of AUC</h2>
+<ul>
+<li>RUVBnl performs best on average in every scenario.</li>
+<li>For <span class="math inline">\(m = 10\)</span>, RUV2 performs competitively for large sample sizes but poorly for small sample sizes while RUV4 (CATE) performs competitively for small sample sizes and poorly for large sample sizes. RUV3 performs middling for every scenario.</li>
+<li>Limma shrinkage ALWAYS improves AUC. It doesn’t matter too much if you do the shrinkage before or after GLS, though we see very modest gains if the limma-shrinkage is done before GLS.</li>
+<li>Additive variance inflation might be worth pursuing after all. But this contrasts with my previous simulation findings.</li>
+</ul>
+</div>
+</div>
+<div id="session-information" class="section level1">
+<h1>Session information</h1>
+<!-- Insert the session information into the document -->
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>## R version 3.3.2 (2016-10-31)
+## Platform: x86_64-pc-linux-gnu (64-bit)
+## Running under: Ubuntu 16.04.2 LTS
+## 
+## locale:
+##  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+##  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+##  [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+##  [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+##  [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+## [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+## 
+## attached base packages:
+## [1] stats     graphics  grDevices utils     datasets  methods   base     
+## 
+## other attached packages:
+## [1] stringr_1.2.0   dplyr_0.5.0     purrr_0.2.2     readr_1.0.0    
+## [5] tidyr_0.6.1     tibble_1.2      ggplot2_2.2.1   tidyverse_1.1.1
+## 
+## loaded via a namespace (and not attached):
+##  [1] Rcpp_0.12.10     plyr_1.8.4       forcats_0.2.0    tools_3.3.2     
+##  [5] digest_0.6.12    jsonlite_1.3     lubridate_1.6.0  evaluate_0.10   
+##  [9] nlme_3.1-131     gtable_0.2.0     lattice_0.20-34  psych_1.6.12    
+## [13] DBI_0.6          yaml_2.1.14      parallel_3.3.2   haven_1.0.0     
+## [17] xml2_1.1.1       httr_1.2.1       knitr_1.15.1     hms_0.3         
+## [21] rprojroot_1.2    grid_3.3.2       R6_2.2.0         readxl_0.1.1    
+## [25] foreign_0.8-67   rmarkdown_1.3    modelr_0.1.0     reshape2_1.4.2  
+## [29] magrittr_1.5     backports_1.0.5  scales_0.4.1     htmltools_0.3.5 
+## [33] rvest_0.3.2      assertthat_0.2.0 mnormt_1.5-5     colorspace_1.3-2
+## [37] labeling_0.3     stringi_1.1.2    lazyeval_0.2.0   munsell_0.4.3   
+## [41] broom_0.4.2</code></pre>
+</div>
+
+<hr>
+<p>
+    This site was created with <a href="http://rmarkdown.rstudio.com">R Markdown</a>
+</p>
+<hr>
+
+<!-- To enable disqus, uncomment the section below and provide your disqus_shortname -->
+
+<!-- disqus
+  <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'rmarkdown'; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+-->
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

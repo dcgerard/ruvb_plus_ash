@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+<meta name="author" content="Matthew Stephens" />
+
+<meta name="date" content="2017-04-26" />
+
+<title>Coverage Plot in RUVB Paper</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-1.1/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-1.1/highlight.js"></script>
+<link href="site_libs/font-awesome-4.5.0/css/font-awesome.min.css" rel="stylesheet" />
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs && document.readyState && document.readyState === "complete") {
+   window.setTimeout(function() {
+      hljs.initHighlighting();
+   }, 0);
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 51px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+
+.section h2 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h3 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h4 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h5 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h6 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+  padding-left: 25px;
+  text-indent: 0;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">ruvb_plus_ash</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/jdblischak/workflowr">
+    <span class="fa fa-github"></span>
+     
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Coverage Plot in RUVB Paper</h1>
+<h4 class="author"><em>Matthew Stephens</em></h4>
+<h4 class="date"><em>2017-04-26</em></h4>
+
+</div>
+
+
+<!-- The file analysis/chunks.R contains chunks that define default settings
+shared across the workflowr files. -->
+<div id="abstract" class="section level1">
+<h1>Abstract</h1>
+<p>Here, I make some exploratory plots from the output of the <a href="https://github.com/dcgerard/ruvb_sims/blob/master/R/sims_ruv3paper_sims.R">RUVB paper simulations</a>. I ultimately make a suggestion on Coverage plots.</p>
+</div>
+<div id="key" class="section level1">
+<h1>Key</h1>
+<p>Here, I explore six mean methods:</p>
+<ul>
+<li>OLS (no confounder adjustment)</li>
+<li>CATE</li>
+<li>RUV4</li>
+<li>RUV3</li>
+<li>RUV2</li>
+<li>RUVB</li>
+</ul>
+<p>I estimate the variances with the mean methods in different combinations. The key for this is:</p>
+<ul>
+<li>o = Original.</li>
+<li>n = Normal or <span class="math inline">\(t\)</span> approximation for the likelihood in RUVB.</li>
+<li>m = MAD variance inflation.</li>
+<li>c = control-gene calibrated.</li>
+<li>l = Limma-adjusted.</li>
+<li>lb = limma-adjusted Before GLS (for either CATE or RUV3).</li>
+<li>la = limma-adjusted After GLS (for either CATE or RUV3).</li>
+<li>d = Delta-adjustment from CATE package (additive variance inflation).</li>
+</ul>
+</div>
+<div id="coverage-plots" class="section level1">
+<h1>Coverage Plots</h1>
+<p>First, I make a large boxplot of coverage.</p>
+<pre class="r"><code>library(tidyverse)</code></pre>
+<pre><code>## Loading tidyverse: ggplot2
+## Loading tidyverse: tibble
+## Loading tidyverse: tidyr
+## Loading tidyverse: readr
+## Loading tidyverse: purrr
+## Loading tidyverse: dplyr</code></pre>
+<pre><code>## Conflicts with tidy packages ----------------------------------------------</code></pre>
+<pre><code>## filter(): dplyr, stats
+## lag():    dplyr, stats</code></pre>
+<pre class="r"><code>library(stringr)
+covdat &lt;- read_csv(file = &quot;../../reproduce_ruv3/Output/sims_out/cov_mat2.csv&quot;)</code></pre>
+<pre><code>## Parsed with column specification:
+## cols(
+##   .default = col_double(),
+##   current_seed = col_integer(),
+##   Nsamp = col_integer(),
+##   ncontrols = col_integer(),
+##   poisthin = col_logical()
+## )</code></pre>
+<pre><code>## See spec(...) for full column specifications.</code></pre>
+<pre class="r"><code>left_vals &lt;- toupper(str_replace(str_extract(names(covdat)[-(1:5)], &quot;^.+_&quot;), &quot;_&quot;, &quot;&quot;))
+right_vals &lt;- str_replace(str_extract(names(covdat)[-(1:5)], &quot;_.+$&quot;), &quot;_&quot;, &quot;&quot;)
+name_vec &lt;- c(&quot;Seed&quot;, &quot;Pi0&quot;, &quot;SampleSize&quot;, &quot;NControls&quot;, &quot;Poisthin&quot;,
+              paste0(left_vals, right_vals))
+name_vec[(length(name_vec) - 2):length(name_vec)] &lt;- 
+  paste0(&quot;RUVB&quot;, stringr::str_replace(string = names(covdat)[(length(name_vec) - 2):length(name_vec)],
+                                      pattern = &quot;(ruvb)(.*+)&quot;, replace = &quot;\\2&quot;))
+names(covdat) &lt;- name_vec
+covdat &lt;- select(covdat, -Seed, -Poisthin)
+
+longdat &lt;- gather(data = covdat, key = &quot;Method&quot;, value = &quot;Coverage&quot;, -(1:3))
+p &lt;- ggplot(data = longdat, mapping = aes(y = Coverage, x = Method)) +
+  geom_boxplot(outlier.size = 0.2, size = 0.2) +
+  facet_grid(Pi0 + NControls ~ SampleSize) +
+  geom_hline(yintercept = 0.95, lty = 2) +
+  xlab(&quot;Method&quot;) + ylab(&quot;Coverage&quot;) +
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  theme(strip.background = element_rect(fill=&quot;white&quot;)) +
+  ggtitle(&quot;Coverage&quot;)
+print(p)</code></pre>
+<p><img src="ruvb_paper_plots_coverage_files/figure-html/unnamed-chunk-1-1.png" width="1440" /></p>
+<p>This plot is super busy and hard to wrap my mind around, but we can include a large version of it in the supplementary material. We will calculate medians for each method, then just print out the best performing method in terms of median coverage. RUVB (not RUVBn or RUVBnl) and CATEdl are the best.</p>
+<pre class="r"><code>meddat &lt;- longdat %&gt;% group_by(Pi0, SampleSize, NControls, Method) %&gt;%
+  summarise(Median = median(Coverage), Mean = mean(Coverage)) %&gt;%
+  ungroup()
+
+meddat$Diff &lt;- meddat$Median - 0.95
+
+get_best &lt;- function(Method, Diff) {
+  Method[which.min(abs(Diff))]
+}
+bestdat &lt;- meddat %&gt;% group_by(Pi0, SampleSize, NControls) %&gt;%
+  summarise(Best = get_best(Method, Diff))
+table(bestdat$Best)</code></pre>
+<pre><code>## 
+##   CATEd  CATEdl  CATEdm   CATEo   RUV2l   RUV2m  RUV3la RUV3lac  RUV4lm 
+##       2       6       1       1       2       1       1       1       1 
+##    RUVB 
+##       8</code></pre>
+<p>Get the median coverage rankings within each scenario.</p>
+<pre class="r"><code>get_ranks &lt;- function(Diff) {
+  rank(abs(Diff))
+}
+meddat &lt;- meddat %&gt;% group_by(Pi0, SampleSize, NControls) %&gt;%
+  mutate(Rank = get_ranks(Diff)) %&gt;%
+  ungroup()</code></pre>
+<p>Boxplot of ranks. Note that RUVB is always one of the best ones.</p>
+<pre class="r"><code>ggplot(data = meddat, mapping = aes(x = Method, y = Rank)) +
+  geom_boxplot() +
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  theme(strip.background = element_rect(fill=&quot;white&quot;))</code></pre>
+<p><img src="ruvb_paper_plots_coverage_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<p>So RUVB has the best “typical coverage”. That is, the median coverage.</p>
+<p>Now I will go and just look at the CATE methods, the RUV4 methods, the RUV3 methods, the RUV2 methods, the RUVB methods, and the OLS methods.</p>
+<p>First, OLS:</p>
+<pre class="r"><code>tempdat &lt;- meddat %&gt;% filter(str_detect(Method, &quot;OLS&quot;))
+ggplot(data = tempdat, mapping = aes(x = SampleSize, y = Median, color = Method, lty = Method)) +
+  geom_line() +
+  facet_grid(NControls ~ Pi0) +
+  geom_hline(yintercept = 0.95, lty = 2) +
+  theme_bw() + theme(strip.background = element_rect(fill = &quot;white&quot;)) +
+  ggtitle(&quot;Median Coverage for OLS&quot;)</code></pre>
+<p><img src="ruvb_paper_plots_coverage_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<p>RUV2:</p>
+<pre class="r"><code>tempdat &lt;- meddat %&gt;% filter(str_detect(Method, &quot;RUV2&quot;))
+ggplot(data = tempdat, mapping = aes(x = SampleSize, y = Median, color = Method, lty = Method)) +
+  geom_line() +
+  facet_grid(NControls ~ Pi0) +
+  geom_hline(yintercept = 0.95, lty = 2) +
+  theme_bw() + theme(strip.background = element_rect(fill = &quot;white&quot;)) +
+  ggtitle(&quot;Median Coverage for RUV2&quot;)</code></pre>
+<p><img src="ruvb_paper_plots_coverage_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<p>RUV3:</p>
+<pre class="r"><code>tempdat &lt;- meddat %&gt;% filter(str_detect(Method, &quot;RUV3&quot;))
+ggplot(data = tempdat, mapping = aes(x = SampleSize, y = Median, color = Method, lty = Method)) +
+  geom_line() +
+  facet_grid(NControls ~ Pi0) +
+  geom_hline(yintercept = 0.95, lty = 2) +
+  theme_bw() + theme(strip.background = element_rect(fill = &quot;white&quot;)) +
+  ggtitle(&quot;Median Coverage for RUV3&quot;)</code></pre>
+<p><img src="ruvb_paper_plots_coverage_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<p>RUV4: RUV4 has similar behavior to the CATE methods.</p>
+<pre class="r"><code>tempdat &lt;- meddat %&gt;% filter(str_detect(Method, &quot;RUV4&quot;))
+ggplot(data = tempdat, mapping = aes(x = SampleSize, y = Median, color = Method, lty = Method)) +
+  geom_line() +
+  facet_grid(NControls ~ Pi0) +
+  geom_hline(yintercept = 0.95, lty = 2) +
+  theme_bw() + theme(strip.background = element_rect(fill = &quot;white&quot;)) +
+  ggtitle(&quot;Median Coverage for RUV4&quot;)</code></pre>
+<p><img src="ruvb_paper_plots_coverage_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+<p>CATE: CATEd works really well when m = 100. None of the methods work well when m = 10 and pi0 = 0.5.</p>
+<pre class="r"><code>tempdat &lt;- meddat %&gt;% filter(str_detect(Method, &quot;CATE&quot;))
+ggplot(data = tempdat, mapping = aes(x = SampleSize, y = Median, color = Method)) +
+  geom_line() +
+  facet_grid(NControls ~ Pi0) +
+  geom_hline(yintercept = 0.95, lty = 2) +
+  theme_bw() + theme(strip.background = element_rect(fill = &quot;white&quot;)) +
+  ggtitle(&quot;Median Coverage for CATE&quot;)</code></pre>
+<p><img src="ruvb_paper_plots_coverage_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+<p>RUVB: RUVB works the best. RUVn and RUVBnl are a little conservative. But I use the t distribution instead of the normal, so this might go away if I use normal instead.</p>
+<pre class="r"><code>tempdat &lt;- meddat %&gt;% filter(str_detect(Method, &quot;RUVB&quot;))
+ggplot(data = tempdat, mapping = aes(x = SampleSize, y = Median, color = Method, lty = Method)) +
+  geom_line() +
+  facet_grid(NControls ~ Pi0) +
+  geom_hline(yintercept = 0.95, lty = 2) +
+  theme_bw() + theme(strip.background = element_rect(fill = &quot;white&quot;)) +
+  ggtitle(&quot;Median Coverage for RUVB&quot;)</code></pre>
+<p><img src="ruvb_paper_plots_coverage_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+</div>
+<div id="loss-function" class="section level1">
+<h1>Loss function</h1>
+<p>How bad is bad coverage? Since there is asymetry in the coverage, I don’t think MSE is the best measure, but we can look at it. I could re-do the simulations and also include the lengths of the confidence intervals?</p>
+<p>But in terms of the minimum mean MSE (averaging across all scenarios), RUV2m does the best. From the boxplots, RUV2m is a little conservative at Pi0 = 0.5 and a little anti-conservative at Pi0 = 1. RUVBnl also does pretty well.</p>
+<pre class="r"><code>get_mse095 &lt;- function(Coverage) {
+  mean((Coverage - 0.95) ^ 2)
+}
+msedat &lt;- longdat %&gt;% group_by(Pi0, SampleSize, NControls, Method) %&gt;%
+  summarize(MSE = get_mse095(Coverage)) %&gt;%
+  ungroup()
+temp &lt;- msedat %&gt;% group_by(Method) %&gt;% summarize(Mean = mean(MSE))
+temp$Method[order(temp$Mean)]</code></pre>
+<pre><code>##  [1] &quot;RUV2m&quot;   &quot;RUV3m&quot;   &quot;CATEdm&quot;  &quot;RUV4m&quot;   &quot;CATEm&quot;   &quot;RUVBnl&quot;  &quot;OLSm&quot;   
+##  [8] &quot;RUV2lm&quot;  &quot;RUV3lam&quot; &quot;RUV4lm&quot;  &quot;RUV3lbm&quot; &quot;RUVBn&quot;   &quot;CATElam&quot; &quot;CATElbm&quot;
+## [15] &quot;RUV2o&quot;   &quot;CATEdlc&quot; &quot;OLSlc&quot;   &quot;CATElac&quot; &quot;RUV4lc&quot;  &quot;CATEdlm&quot; &quot;RUV2lc&quot; 
+## [22] &quot;OLSlm&quot;   &quot;RUV3lb&quot;  &quot;RUV4c&quot;   &quot;CATEc&quot;   &quot;OLSc&quot;    &quot;RUV2c&quot;   &quot;CATEdc&quot; 
+## [29] &quot;CATElbc&quot; &quot;RUV3o&quot;   &quot;CATEd&quot;   &quot;RUV2l&quot;   &quot;RUVB&quot;    &quot;RUV3la&quot;  &quot;CATEdl&quot; 
+## [36] &quot;OLSo&quot;    &quot;RUV3c&quot;   &quot;OLSl&quot;    &quot;RUV3lbc&quot; &quot;CATElb&quot;  &quot;CATEo&quot;   &quot;RUV3lac&quot;
+## [43] &quot;CATEla&quot;  &quot;RUV4o&quot;   &quot;RUV4l&quot;</code></pre>
+<pre class="r"><code>min_mse &lt;- min(temp$Mean)
+ggplot(data = msedat, mapping = aes(x = Method, y = MSE)) +
+  geom_boxplot() +
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  theme(strip.background = element_rect(fill=&quot;white&quot;)) +
+  geom_hline(yintercept = min_mse, lty = 2)</code></pre>
+<p><img src="ruvb_paper_plots_coverage_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+</div>
+<div id="compare-m-vs-c-vs-lm-vs-lc" class="section level1">
+<h1>Compare “m” vs “c” vs “lm” vs “lc”</h1>
+<p>I am going to extract “m”, “c”, “lm”, and “lc” methods and plot them together.</p>
+<p>The <em>“m” methods</em> all have very similar behavior (except for OLSm). They are too conservative at Pi0 = 0.5 and they are too anti-conservative at Pi0 = 1.</p>
+<pre class="r"><code>mdata &lt;- longdat %&gt;% filter(stringr::str_detect(Method, &quot;(?&lt;!l|la|lb)m$&quot;))
+unique(mdata$Method)</code></pre>
+<pre><code>## [1] &quot;OLSm&quot;   &quot;RUV2m&quot;  &quot;RUV3m&quot;  &quot;RUV4m&quot;  &quot;CATEm&quot;  &quot;CATEdm&quot;</code></pre>
+<pre class="r"><code>pl &lt;- ggplot(data = mdata, mapping = aes(y = Coverage, x = Method)) +
+  geom_boxplot(outlier.size = 0.2, size = 0.2) +
+  facet_grid(Pi0 + NControls ~ SampleSize) +
+  geom_hline(yintercept = 0.95, lty = 2) +
+  xlab(&quot;Method&quot;) + ylab(&quot;Coverage&quot;) +
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  theme(strip.background = element_rect(fill=&quot;white&quot;)) +
+  ggtitle(&quot;Coverage&quot;)
+print(pl)</code></pre>
+<p><img src="ruvb_paper_plots_coverage_files/figure-html/unnamed-chunk-12-1.png" width="672" /></p>
+<p>The <em>limma-m</em> methods. CATElbm and RUV3lbm (the limma BEFORE GLS methods) behave similarly while the rest of the limma methods behave similarly. Again, we see conservative behavior at Pi0 = 0.5 and anticonservative behavior at Pi0 = 1.</p>
+<pre class="r"><code>lmdata &lt;- longdat %&gt;% filter(stringr::str_detect(Method, &quot;(lm|lam|lbm)$&quot;))
+unique(lmdata$Method)</code></pre>
+<pre><code>## [1] &quot;OLSlm&quot;   &quot;RUV2lm&quot;  &quot;RUV3lbm&quot; &quot;RUV3lam&quot; &quot;RUV4lm&quot;  &quot;CATElbm&quot; &quot;CATElam&quot;
+## [8] &quot;CATEdlm&quot;</code></pre>
+<pre class="r"><code>pl &lt;- ggplot(data = lmdata, mapping = aes(y = Coverage, x = Method)) +
+  geom_boxplot(outlier.size = 0.2, size = 0.2) +
+  facet_grid(Pi0 + NControls ~ SampleSize) +
+  geom_hline(yintercept = 0.95, lty = 2) +
+  xlab(&quot;Method&quot;) + ylab(&quot;Coverage&quot;) +
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  theme(strip.background = element_rect(fill=&quot;white&quot;)) +
+  ggtitle(&quot;Coverage&quot;)
+print(pl)</code></pre>
+<p><img src="ruvb_paper_plots_coverage_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
+<p>The “c” methods. I might have some problem with RUV3c — it works very very poorly for large n and small number of control genes (I’ve deleted many of those points from the below boxplot). Otherwise, they are all too conservative at small n or small m and work great for large n and large m. This is different behavior from what I originally saw, so I am wondering if I made a mistake here.</p>
+<pre class="r"><code>cdata &lt;- longdat %&gt;% filter(stringr::str_detect(Method, &quot;(?&lt;!l|la|lb)c$&quot;))
+unique(cdata$Method)</code></pre>
+<pre><code>## [1] &quot;OLSc&quot;   &quot;RUV2c&quot;  &quot;RUV3c&quot;  &quot;RUV4c&quot;  &quot;CATEc&quot;  &quot;CATEdc&quot;</code></pre>
+<pre class="r"><code>pl &lt;- ggplot(data = cdata, mapping = aes(y = Coverage, x = Method)) +
+  geom_boxplot(outlier.size = 0.2, size = 0.2) +
+  facet_grid(Pi0 + NControls ~ SampleSize) +
+  geom_hline(yintercept = 0.95, lty = 2) +
+  xlab(&quot;Method&quot;) + ylab(&quot;Coverage&quot;) +
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  theme(strip.background = element_rect(fill=&quot;white&quot;)) +
+  ggtitle(&quot;Coverage&quot;) +
+  ylim(0.85, 1)
+print(pl)</code></pre>
+<pre><code>## Warning: Removed 636 rows containing non-finite values (stat_boxplot).</code></pre>
+<p><img src="ruvb_paper_plots_coverage_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
+<p>The “lc” methods. I am again seeing similar behavior. Very conservative everywhere except for large n and m. Again, the RUV3c methods don’t work too well (points removed).</p>
+<pre class="r"><code>lcdata &lt;- longdat %&gt;% filter(stringr::str_detect(Method, &quot;(lc|lac|lbc)$&quot;))
+unique(lcdata$Method)</code></pre>
+<pre><code>## [1] &quot;OLSlc&quot;   &quot;RUV2lc&quot;  &quot;RUV3lbc&quot; &quot;RUV3lac&quot; &quot;RUV4lc&quot;  &quot;CATElbc&quot; &quot;CATElac&quot;
+## [8] &quot;CATEdlc&quot;</code></pre>
+<pre class="r"><code>pl &lt;- ggplot(data = lcdata, mapping = aes(y = Coverage, x = Method)) +
+  geom_boxplot(outlier.size = 0.2, size = 0.2) +
+  facet_grid(Pi0 + NControls ~ SampleSize) +
+  geom_hline(yintercept = 0.95, lty = 2) +
+  xlab(&quot;Method&quot;) + ylab(&quot;Coverage&quot;) +
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  theme(strip.background = element_rect(fill=&quot;white&quot;)) +
+  ggtitle(&quot;Coverage&quot;) +
+  ylim(0.8, 1)
+print(pl)</code></pre>
+<pre><code>## Warning: Removed 1017 rows containing non-finite values (stat_boxplot).</code></pre>
+<p><img src="ruvb_paper_plots_coverage_files/figure-html/unnamed-chunk-15-1.png" width="672" /></p>
+<p>The non “c” and “m” methods.</p>
+<pre class="r"><code>ncmdata &lt;- longdat %&gt;% filter(!stringr::str_detect(Method, &quot;(c|m|l|la|lb)$&quot;))
+unique(ncmdata$Method)</code></pre>
+<pre><code>## [1] &quot;OLSo&quot;  &quot;RUV2o&quot; &quot;RUV3o&quot; &quot;RUV4o&quot; &quot;CATEo&quot; &quot;CATEd&quot; &quot;RUVBn&quot; &quot;RUVB&quot;</code></pre>
+<pre class="r"><code>pl &lt;- ggplot(data = ncmdata, mapping = aes(y = Coverage, x = Method)) +
+  geom_boxplot(outlier.size = 0.2, size = 0.2) +
+  facet_grid(Pi0 + NControls ~ SampleSize) +
+  geom_hline(yintercept = 0.95, lty = 2) +
+  xlab(&quot;Method&quot;) + ylab(&quot;Coverage&quot;) +
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  theme(strip.background = element_rect(fill=&quot;white&quot;)) +
+  ggtitle(&quot;Coverage&quot;)
+print(pl)</code></pre>
+<p><img src="ruvb_paper_plots_coverage_files/figure-html/unnamed-chunk-16-1.png" width="864" /></p>
+</div>
+<div id="session-information" class="section level1">
+<h1>Session information</h1>
+<!-- Insert the session information into the document -->
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>## R version 3.3.2 (2016-10-31)
+## Platform: x86_64-pc-linux-gnu (64-bit)
+## Running under: Ubuntu 16.04.2 LTS
+## 
+## locale:
+##  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+##  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+##  [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+##  [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+##  [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+## [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+## 
+## attached base packages:
+## [1] stats     graphics  grDevices utils     datasets  methods   base     
+## 
+## other attached packages:
+## [1] stringr_1.2.0   dplyr_0.5.0     purrr_0.2.2     readr_1.0.0    
+## [5] tidyr_0.6.1     tibble_1.2      ggplot2_2.2.1   tidyverse_1.1.1
+## 
+## loaded via a namespace (and not attached):
+##  [1] Rcpp_0.12.10     plyr_1.8.4       forcats_0.2.0    tools_3.3.2     
+##  [5] digest_0.6.12    jsonlite_1.3     lubridate_1.6.0  evaluate_0.10   
+##  [9] nlme_3.1-131     gtable_0.2.0     lattice_0.20-34  psych_1.6.12    
+## [13] DBI_0.6          yaml_2.1.14      parallel_3.3.2   haven_1.0.0     
+## [17] xml2_1.1.1       httr_1.2.1       knitr_1.15.1     hms_0.3         
+## [21] rprojroot_1.2    grid_3.3.2       R6_2.2.0         readxl_0.1.1    
+## [25] foreign_0.8-67   rmarkdown_1.3    modelr_0.1.0     reshape2_1.4.2  
+## [29] magrittr_1.5     backports_1.0.5  scales_0.4.1     htmltools_0.3.5 
+## [33] rvest_0.3.2      assertthat_0.2.0 mnormt_1.5-5     colorspace_1.3-2
+## [37] labeling_0.3     stringi_1.1.2    lazyeval_0.2.0   munsell_0.4.3   
+## [41] broom_0.4.2</code></pre>
+</div>
+
+<hr>
+<p>
+    This site was created with <a href="http://rmarkdown.rstudio.com">R Markdown</a>
+</p>
+<hr>
+
+<!-- To enable disqus, uncomment the section below and provide your disqus_shortname -->
+
+<!-- disqus
+  <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'rmarkdown'; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+-->
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

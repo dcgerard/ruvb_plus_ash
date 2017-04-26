@@ -1,0 +1,270 @@
+---
+title: "AUC Plot in RUVB Paper"
+author: "Matthew Stephens"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+<!-- The file analysis/chunks.R contains chunks that define default settings
+shared across the workflowr files. -->
+```{r read-chunk, include=FALSE, cache=FALSE}
+knitr::read_chunk("chunks.R")
+```
+
+# Abstract
+
+Here, I make some exploratory plots from the output of the [RUVB paper simulations](https://github.com/dcgerard/ruvb_sims/blob/master/R/sims_ruv3paper_sims.R). I ultimately make a suggestion on AUC plots.
+
+# Key
+
+Here, I explore six mean methods:
+
+* OLS (no confounder adjustment)
+* CATE
+* RUV4
+* RUV3
+* RUV2
+* RUVB
+
+I estimate the variances with the mean methods in different combinations. The key for this is:
+
+* o = Original.
+* n = Normal or $t$ approximation for the likelihood in RUVB.
+* m = MAD variance inflation.
+* c = control-gene calibrated.
+* l = Limma-adjusted.
+* lb = limma-adjusted Before GLS (for either CATE or RUV3).
+* la = limma-adjusted After GLS (for either CATE or RUV3).
+* d = Delta-adjustment from CATE package (additive variance inflation).
+
+# AUC Plots
+
+The "c" and "m" variants of methods theoretically must have the same AUC as the original method. That is, the groups of methods that have the same AUC are:
+
+* CATEo, CATEc, CATEm,
+* CATEd, CATEdc, CATEdm,
+* CATEla, CATElac, CATElam,
+* CATElb, CATElbc, CATElbm,
+* CATEdl, CATEdlc, CATEdlm,
+* RUV4o, RUV4c, RUV4m,
+* RUV4l, RUV4lc, RUV4lm,
+* OLSo, OLSc, OLSm,
+* OLSl, OLSlc, OLSlm,
+* RUV2o, RUV2c, RUV2m,
+* RUV2l, RUV2lc, RUV2lm,
+* RUV3o, RUV3c, RUV3m,
+* RUV3la, RUV3lac, RUV3lam,
+* RUV3lb, RUV3lbc, RUV3lbm,
+* RUVB, RUVBn
+* RUVBnl
+
+It turns out that RUVBnl always has the highest (mean/median) AUC, particularly when there are only 10 control genes (as opposed to 100). The hard part will then be making a plot appropriate for the paper.
+
+```{r, fig.height=9, fig.width=9}
+library(tidyverse)
+library(stringr)
+aucdat <- read_csv(file = "../../reproduce_ruv3/Output/sims_out/auc_mat2.csv")
+left_vals <- toupper(str_replace(str_extract(names(aucdat)[-(1:5)], "^.+_"), "_", ""))
+right_vals <- str_replace(str_extract(names(aucdat)[-(1:5)], "_.+$"), "_", "")
+name_vec <- c("Seed", "Pi0", "SampleSize", "NControls", "Poisthin",
+              paste0(left_vals, right_vals))
+name_vec[(length(name_vec) - 2):length(name_vec)] <- 
+  paste0("RUVB", stringr::str_replace(string = names(aucdat)[(length(name_vec) - 2):length(name_vec)],
+                                      pattern = "(ruvb)(.*+)", replace = "\\2"))
+names(aucdat) <- name_vec
+
+keep_vec <- c("Pi0", "SampleSize", "NControls", "OLSo", "OLSl", "RUV2o", "RUV2l",
+              "RUV3o", "RUV3la", "RUV3lb", "RUV4o", "RUV4l", "CATEo", "CATEd", 
+              "CATEla", "CATElb", "CATEdl", "RUVB", "RUVBnl" )
+
+ddat <- select_(aucdat, .dots = keep_vec)
+diff_mat <- bind_cols(ddat[, 1:3], ddat[, -c(1:3)] - c(ddat$RUVBnl))
+diff_mat <- select(diff_mat, -RUVBnl)
+
+longdat <- gather(data = diff_mat, key = "Method", value = "AUC", -(1:3)) %>%
+  filter(Pi0 != 1)
+p <- ggplot(data = longdat, mapping = aes(y = AUC, x = Method)) +
+  geom_boxplot(outlier.size = 0.2, size = 0.2) +
+  facet_grid(Pi0 + NControls ~ SampleSize) +
+  geom_hline(yintercept = 0, lty = 2) +
+  xlab("Method") + ylab("Difference in AUC") +
+  ylim(-0.2, max(longdat$AUC)) +
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  theme(strip.background = element_rect(fill="white")) +
+  ggtitle("Difference in AUC from RUVBnl")
+print(p)
+```
+
+The "non-finite" values just results because I put a minimum value of -0.2 on the y-limits.
+
+I can simplify the above plot by just showing the median.
+
+```{r}
+med_dat <- group_by(.data = longdat, Pi0, SampleSize, NControls, Method) %>%
+  summarise(Mean = mean(AUC), Median = median(AUC)) %>%
+  ungroup()
+
+
+pl <- ggplot(data = filter(med_dat, Pi0 == 0.5),
+       mapping = aes(x = SampleSize, y = Mean, lty = Method, color = Method)) +
+  facet_grid(NControls ~.) +
+  geom_line() +
+  theme_bw() +
+  ggtitle("Mean AUC Diff for Pi0 = 0.5") +
+  geom_hline(yintercept = 0, lty = 2)
+print(pl)
+
+pl <- ggplot(data = filter(med_dat, Pi0 == 0.5),
+       mapping = aes(x = SampleSize, y = Median, lty = Method, color = Method)) +
+  facet_grid(NControls ~.) +
+  geom_line() +
+  theme_bw() +
+  ggtitle("Median AUC Diff for Pi0 = 0.5") +
+  geom_hline(yintercept = 0, lty = 2)
+print(pl)
+
+pl <- ggplot(data = filter(med_dat, Pi0 == 0.9),
+       mapping = aes(x = SampleSize, y = Mean, lty = Method, color = Method)) +
+  facet_grid(NControls ~.) +
+  geom_line() +
+  theme_bw() +
+  ggtitle("Mean AUC Diff for Pi0 = 0.9") +
+  geom_hline(yintercept = 0, lty = 2)
+print(pl)
+
+pl <- ggplot(data = filter(med_dat, Pi0 == 0.9),
+       mapping = aes(x = SampleSize, y = Median, lty = Method, color = Method)) +
+  facet_grid(NControls ~.) +
+  geom_line() +
+  theme_bw() +
+  ggtitle("Median AUC Diff for Pi0 = 0.9") +
+  geom_hline(yintercept = 0, lty = 2)
+print(pl)
+
+```
+
+There isn't really any difference between Pi0 = 0.5 and Pi0 = 0.9 and the mean and median seem to show the same story. 
+
+We can include the above boxplot in the supplementary material. But there are certainly methods that perform similarly. Specifically, these groups more or less behave similarly and we can probably only include the best performing method among these groups:
+
+* CATEd, CATEo, and RUV4o
+* CATEdl, CATEla, CATElb, and RUV4l
+* OLSl and OLSo
+* RUV2la nd RUV2o
+* RUV3la and RUV3lb
+* RUV3o
+* RUVB
+
+I will demonstrate the equivalence in behavior between those groups now.
+
+The non-limma RUV4 methods have similar trends. Though it seems that CATEd works best and should be included of these.
+```{r}
+dat <- filter(med_dat, Pi0 == 0.5, Method %in% c("CATEd", "CATEo", "RUV4o"))
+pl <- ggplot(data = dat,
+       mapping = aes(x = SampleSize, y = Mean, lty = Method, color = Method)) +
+  facet_grid(NControls ~.) +
+  geom_line() +
+  theme_bw() +
+  ggtitle("Mean AUC Diff for CATEd, CATEo, and RUV4 when Pi0 = 0.5") +
+  geom_hline(yintercept = 0, lty = 2)
+print(pl)
+```
+
+The RUV4 Limma methods have similar trends. Again, we should probably include CATEdl among these.
+```{r}
+dat <- filter(med_dat, Pi0 == 0.5, Method %in% c("CATEdl", "CATEla", "CATElb", "RUV4l"))
+pl <- ggplot(data = dat,
+       mapping = aes(x = SampleSize, y = Mean, lty = Method, color = Method)) +
+  facet_grid(NControls ~.) +
+  geom_line() +
+  theme_bw() +
+  ggtitle("Mean AUC Diff for CATEdl, CATEla, CATElb, and RUV4l when Pi0 = 0.5") +
+  geom_hline(yintercept = 0, lty = 2)
+print(pl)
+```
+
+Note that it is always better to use GLS (CATE) rather than OLS (RUV4). 
+
+
+The OLS methods perform poorly, with OLSl performing slightly better.
+
+```{r}
+dat <- filter(med_dat, Pi0 == 0.5, Method %in% c("OLSo", "OLSl"))
+pl <- ggplot(data = dat,
+       mapping = aes(x = SampleSize, y = Mean, lty = Method, color = Method)) +
+  facet_grid(NControls ~.) +
+  geom_line() +
+  theme_bw() +
+  ggtitle("Mean AUC Diff for OLSo and OLSl when Pi0 = 0.5") +
+  geom_hline(yintercept = 0, lty = 2)
+print(pl)
+```
+
+The RUV2 methods. RUV2l works better.
+```{r}
+dat <- filter(med_dat, Pi0 == 0.5, Method %in% c("RUV2o", "RUV2l"))
+pl <- ggplot(data = dat,
+       mapping = aes(x = SampleSize, y = Mean, lty = Method, color = Method)) +
+  facet_grid(NControls ~.) +
+  geom_line() +
+  theme_bw() +
+  ggtitle("Mean AUC Diff for RUV2o and RUV2l when Pi0 = 0.5") +
+  geom_hline(yintercept = 0, lty = 2)
+print(pl)
+```
+
+The RUV3 methods. RUV3o seems to have a similar trend to the RUV2 methods. RUV3lb works slightly better than RUV3la and has relatively flat performance relative to RUVBnl.
+```{r}
+dat <- filter(med_dat, Pi0 == 0.5, Method %in% c("RUV3o", "RUV3la", "RUV3lb"))
+pl <- ggplot(data = dat,
+       mapping = aes(x = SampleSize, y = Mean, lty = Method, color = Method)) +
+  facet_grid(NControls ~.) +
+  geom_line() +
+  theme_bw() +
+  ggtitle("Mean AUC Diff for RUV3 methods when Pi0 = 0.5") +
+  geom_hline(yintercept = 0, lty = 2)
+print(pl)
+```
+
+The RUVB method works almost as well as RUVBnl, but is always lower.
+```{r}
+dat <- filter(med_dat, Pi0 == 0.5, Method %in% c("RUVB"))
+pl <- ggplot(data = dat,
+       mapping = aes(x = SampleSize, y = Mean, lty = Method, color = Method)) +
+  facet_grid(NControls ~.) +
+  geom_line() +
+  theme_bw() +
+  ggtitle("Mean AUC Diff for RUVB when Pi0 = 0.5") +
+  geom_hline(yintercept = 0, lty = 2)
+print(pl)
+```
+
+
+Paper plot: Mean AUC from a method subtracted from the mean AUC from RUVBnl. Anything below 0 (the dashed line) indicates superior performance of RUVBnl.
+
+```{r}
+dat <- filter(med_dat, Pi0 == 0.5, Method %in% c("RUV2l", "RUV3lb", "CATEd", "CATEdl"))
+pl <- ggplot(data = dat,
+       mapping = aes(x = SampleSize, y = Mean, lty = Method, color = Method)) +
+  facet_grid(NControls ~.) +
+  geom_line() +
+  theme_bw() +
+  geom_hline(yintercept = 0, lty = 2) +
+  theme(strip.background = element_rect(fill = "white")) +
+  ylab("Mean Difference from RUVBnl") +
+  xlab("Sample Size")
+print(pl)
+```
+
+## Summary of AUC
+
+* RUVBnl performs best on average in every scenario.
+* For $m = 10$, RUV2 performs competitively for large sample sizes but poorly for small sample sizes while RUV4 (CATE) performs competitively for small sample sizes and poorly for large sample sizes. RUV3 performs middling for every scenario.
+* Limma shrinkage ALWAYS improves AUC. It doesn't matter too much if you do the shrinkage before or after GLS, though we see very modest gains if the limma-shrinkage is done before GLS.
+* Additive variance inflation might be worth pursuing after all. But this contrasts with my previous simulation findings.
+
+# Session information
+
+<!-- Insert the session information into the document -->
+```{r session-info}
+```
