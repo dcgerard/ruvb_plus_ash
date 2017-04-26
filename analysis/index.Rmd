@@ -18,5 +18,9 @@ output:
 * [CATE does not adjust for df. This makes its variances very small for small sample sizes](var_code.html). Here, I also show equivalence between vicar's functions and cate and RUV4's functions.
 * [Limma is scale-equivariant, recalculate limma-shrunk variances in RUV4 using three different approaches](limma_shrink.html)
 
+# Paper Plots
+* [AUC plot seems entirely done](ruvb_paper_plots.html).
+* [Coverage plot needs more work](ruvb_paper_plots_coverage.html). In particular, I am afraid that I coded up the "c" methods incorrectly. I need to double check them.
+
 [rmarkdown]: http://rmarkdown.rstudio.com/rmarkdown_websites.htm
 [rstudio]: https://www.rstudio.com/products/rstudio/download/preview/
