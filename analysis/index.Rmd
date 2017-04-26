@@ -21,6 +21,7 @@ output:
 # Paper Plots
 * [AUC plot seems entirely done](ruvb_paper_plots.html).
 * [Coverage plot needs more work](ruvb_paper_plots_coverage.html). In particular, I am afraid that I coded up the "c" methods incorrectly. I need to double check them.
+* [Small difference between Gagnon-Bartsch variance inflation and my variance inflation](check_c_inflation.html). When I use the maximum-likelihood approach, this results in a small multiplicative difference that basically amounts to using `solve(crossprod(X))` vs `solve(crossprod(cbind(X, Z)))`.
 
 [rmarkdown]: http://rmarkdown.rstudio.com/rmarkdown_websites.htm
 [rstudio]: https://www.rstudio.com/products/rstudio/download/preview/

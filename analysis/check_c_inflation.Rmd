@@ -1,0 +1,102 @@
+---
+title: "Make Sure c Calibration is Correct"
+author: "David Gerard"
+date: "April 26, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Abstract
+Here, I double check my control-gene based variance inflation calibration code I used during my simulations.
+
+# Analysis
+
+First, generate simulated data
+```{r}
+library(tidyverse)
+## Load code I used in sims
+source("../../reproduce_ruv3/Code/nc_adjustment_methods.R")
+set.seed(7)
+n <- 20
+p <- 100
+k <- 3
+q <- 2
+
+X <- matrix(rnorm(n * q), nrow = n)
+beta <- matrix(rnorm(q * p), nrow = q)
+beta[, 1:25] <- 0
+Z <- matrix(rnorm(n * k), nrow = n)
+alpha <- matrix(rnorm(k * p), nrow = k)
+E <- matrix(rnorm(n * p), nrow = n)
+Y <- X %*% beta + Z %*% alpha + E
+ctl <- rep(FALSE, length = p)
+ctl[1:13] <- TRUE
+
+
+vout <- vicar::vruv4(Y = Y, X = X, ctl = ctl, k = k, cov_of_interest = 2, likelihood = "normal",
+                     limmashrink = FALSE, include_intercept = FALSE, gls = TRUE)
+obj <- list()
+obj$betahat   <- vout$betahat
+obj$sebetahat <- vout$sebetahat_ols
+obj$df        <- nrow(Y) - ncol(X) - k
+
+ctl_out <- ctl_adjust(obj, control_genes = ctl)
+
+
+
+dat <- data_frame(SE1 = c(ctl_out$sebetahat), SE2 = c(vout$sebetahat))
+ggplot(data = dat, mapping = aes(x = SE1, y = SE2)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0) +
+  theme_bw() +
+  xlab("GB SE") +
+  ylab("My SE") +
+  ggtitle("My SE vs GB SE")
+
+vout$sebetahat[1] / ctl_out$sebetahat[1]
+
+## I use this
+multme <- solve(crossprod(X))[2, 2]
+R <- qr.R(qr(X))
+multme
+(1 / R[2,2]) ^ 2
+
+## Gagnon-Bartsch uses this
+multgag <- solve(crossprod(cbind(X, vout$Zhat)))[2,2]
+
+dat <- data_frame(SE1 = c(vout$sebetahat) * sqrt(multme / multgag),
+                  SE2 = c(ctl_out$sebetahat))
+ggplot(data = dat, mapping = aes(x = SE1, y = SE2)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0) +
+  theme_bw() +
+  ggtitle("Should lie on line")
+```
+
+# Summary
+Let
+\begin{align}
+a := (X^TX)^{-1}[2,2]\\
+b := ([X,Z]^T[X,Z])^{-1}[2,2]
+\end{align}
+
+When I calculate the variance inflation term during the maximum likelihood step, I end up using
+\begin{align}
+b\sigma_i^2 \frac{1}{m}\sum \frac{\beta_i^2}{a\sigma_i^2}\\
+=\frac{b}{a}\sigma_i^2 \frac{1}{m}\sum \frac{\beta_i^2}{\sigma_i^2}.
+\end{align}
+whereas Gagnon-Bartsch uses
+\begin{align}
+b\sigma_i^2 \frac{1}{m}\sum \frac{\beta_i^2}{b\sigma_i^2}\\
+=\sigma_i^2 \frac{1}{m}\sum \frac{\beta_i^2}{\sigma_i^2}.
+\end{align}
+Thus, it is slightly different.
+
+
+
+```{r}
+sessionInfo()
+```
