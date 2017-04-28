@@ -346,15 +346,17 @@ ctl[1:13] &lt;- TRUE
 
 
 vout &lt;- vicar::vruv4(Y = Y, X = X, ctl = ctl, k = k, cov_of_interest = 2, likelihood = &quot;normal&quot;,
-                     limmashrink = FALSE, include_intercept = FALSE, gls = TRUE)
+                     limmashrink = FALSE, include_intercept = FALSE, gls = FALSE)
 obj &lt;- list()
 obj$betahat   &lt;- vout$betahat
 obj$sebetahat &lt;- vout$sebetahat_ols
 obj$df        &lt;- nrow(Y) - ncol(X) - k
 
-ctl_out &lt;- ctl_adjust(obj, control_genes = ctl)</code></pre>
-<pre><code>## mult_val:  1.215</code></pre>
-<pre class="r"><code>dat &lt;- data_frame(SE1 = c(ctl_out$sebetahat), SE2 = c(vout$sebetahat))
+ctl_out &lt;- ctl_adjust(obj, control_genes = ctl)
+
+
+
+dat &lt;- data_frame(SE1 = c(ctl_out$sebetahat), SE2 = c(vout$sebetahat))
 ggplot(data = dat, mapping = aes(x = SE1, y = SE2)) +
   geom_point() +
   geom_abline(slope = 1, intercept = 0) +
@@ -364,7 +366,7 @@ ggplot(data = dat, mapping = aes(x = SE1, y = SE2)) +
   ggtitle(&quot;My SE vs GB SE&quot;)</code></pre>
 <p><img src="check_c_inflation_files/figure-html/unnamed-chunk-1-1.png" width="672" /></p>
 <pre class="r"><code>vout$sebetahat[1] / ctl_out$sebetahat[1]</code></pre>
-<pre><code>## [1] 1.118</code></pre>
+<pre><code>## [1] 1.113</code></pre>
 <pre class="r"><code>## I use this
 multme &lt;- solve(crossprod(X))[2, 2]
 R &lt;- qr.R(qr(X))
@@ -383,6 +385,20 @@ ggplot(data = dat, mapping = aes(x = SE1, y = SE2)) +
   theme_bw() +
   ggtitle(&quot;Should lie on line&quot;)</code></pre>
 <p><img src="check_c_inflation_files/figure-html/unnamed-chunk-1-2.png" width="672" /></p>
+<p>Using the <code>ruv</code> R package:</p>
+<pre class="r"><code>ruv4out &lt;- ruv::RUV4(Y = Y, X = X[, 2, drop = FALSE], ctl = ctl, k = k,
+                     Z = X[, -2, drop = FALSE])
+ruv4_covadjust &lt;- ruv::variance_adjust(ruv4out)
+
+dat &lt;- data_frame(GB = c(ruv4_covadjust$varbetahat.rsvar), ME = c(ctl_out$sebetahat) ^ 2)
+ggplot(data = dat, mapping = aes(x = GB, y = ME)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0) +
+  theme_bw() +
+  ggtitle(&quot;Should lie on line&quot;) +
+  xlab(&quot;Gagnon-Barstch Var&quot;) +
+  ylab(&quot;My Var&quot;)</code></pre>
+<p><img src="check_c_inflation_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
 </div>
 <div id="summary" class="section level1">
 <h1>Summary</h1>

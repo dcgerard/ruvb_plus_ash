@@ -37,7 +37,7 @@ ctl[1:13] <- TRUE
 
 
 vout <- vicar::vruv4(Y = Y, X = X, ctl = ctl, k = k, cov_of_interest = 2, likelihood = "normal",
-                     limmashrink = FALSE, include_intercept = FALSE, gls = TRUE)
+                     limmashrink = FALSE, include_intercept = FALSE, gls = FALSE)
 obj <- list()
 obj$betahat   <- vout$betahat
 obj$sebetahat <- vout$sebetahat_ols
@@ -74,6 +74,22 @@ ggplot(data = dat, mapping = aes(x = SE1, y = SE2)) +
   geom_abline(slope = 1, intercept = 0) +
   theme_bw() +
   ggtitle("Should lie on line")
+```
+
+Using the `ruv` R package:
+```{r}
+ruv4out <- ruv::RUV4(Y = Y, X = X[, 2, drop = FALSE], ctl = ctl, k = k,
+                     Z = X[, -2, drop = FALSE])
+ruv4_covadjust <- ruv::variance_adjust(ruv4out)
+
+dat <- data_frame(GB = c(ruv4_covadjust$varbetahat.rsvar), ME = c(ctl_out$sebetahat) ^ 2)
+ggplot(data = dat, mapping = aes(x = GB, y = ME)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0) +
+  theme_bw() +
+  ggtitle("Should lie on line") +
+  xlab("Gagnon-Barstch Var") +
+  ylab("My Var")
 ```
 
 # Summary

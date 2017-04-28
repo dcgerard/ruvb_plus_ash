@@ -1,0 +1,142 @@
+---
+title: "Coverage Try 2"
+author: "David Gerard"
+date: "April 28, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Abstract
+
+This is my second try at the coverage problem. Recall [here](ruvb_paper_plots_coverage.Rmd), I plotted the full boxplots of all of the coverage and calculated the median covarage. Here, I look at different loss functions.
+
+# Read in data
+
+```{r}
+library(tidyverse)
+library(stringr)
+covdat <- read_csv(file = "../../reproduce_ruv3/Output/sims_out/cov_mat2.csv")
+left_vals <- toupper(str_replace(str_extract(names(covdat)[-(1:5)], "^.+_"), "_", ""))
+right_vals <- str_replace(str_extract(names(covdat)[-(1:5)], "_.+$"), "_", "")
+name_vec <- c("Seed", "Pi0", "SampleSize", "NControls", "Poisthin",
+              paste0(left_vals, right_vals))
+name_vec[(length(name_vec) - 3):length(name_vec)] <- 
+  paste0("RUVB", stringr::str_replace(string = names(covdat)[(length(name_vec) - 3):length(name_vec)],
+                                      pattern = "(ruvb)(.*+)", replace = "\\2"))
+names(covdat) <- name_vec
+covdat <- select(covdat, -Seed, -Poisthin)
+longdat <- gather(data = covdat, key = "Method", value = "Coverage", -(1:3))
+```
+
+Calculate losses on the data.
+
+```{r}
+less9 <- function(x) {
+  s1 <- mean(x < 0.9)
+}
+
+g0975 <- function(x) {
+  s2 <- mean(x > 0.975)
+}
+
+sumdat <- longdat %>% group_by(Pi0, SampleSize, NControls, Method) %>%
+  summarise(Less = less9(Coverage), Greater = g0975(Coverage)) %>%
+  ungroup() %>%
+  mutate(Loss = Less + Greater)
+```
+
+Simple boxplot of results
+
+```{r}
+ggplot(data = sumdat, mapping = aes(x = Method, y = Loss)) +
+  geom_boxplot() +
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  theme(strip.background = element_rect(fill="white")) +
+  ggtitle("Losses across all scenarios (sum < 0.9 and > 0.975)")
+
+ggplot(data = sumdat, mapping = aes(x = Method, y = Less)) +
+  geom_boxplot() +
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  theme(strip.background = element_rect(fill="white")) +
+  ggtitle("Proportion less than 0.9 across all scenarios")
+
+ggplot(data = sumdat, mapping = aes(x = Method, y = Greater)) +
+  geom_boxplot() +
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  theme(strip.background = element_rect(fill="white")) +
+  ggtitle("Proportion Greater than 0.975 across all scenarios")
+```
+
+Note that RUVB and RUVBnn have the best mean loss, but not the best mean Less(0.9) or the best mean Greater(0.975).
+```{r}
+meanlossdat <- sumdat %>% group_by(Method) %>%
+  summarise(meanLoss = mean(Loss), meanLess = mean(Less), meanGreater = mean(Greater))
+meanlossdat$Method[order(meanlossdat$meanLoss, decreasing = FALSE)]
+meanlossdat$Method[order(meanlossdat$meanLess, decreasing = FALSE)]
+meanlossdat$Method[order(meanlossdat$meanGreater, decreasing = FALSE)]
+```
+
+Try to combine the Less and Greater plots
+```{r, fig.height=6, fig.width=9}
+combdat <- select(sumdat, Pi0, SampleSize, NControls, Method, Less, Greater) %>%
+  gather(key = "Loss", value = "Proportion", Less, Greater)
+
+ggplot(data = combdat, mapping = aes(x = Method, y = Proportion, fill = Loss)) +
+  geom_boxplot() + 
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+  theme(strip.background = element_rect(fill="white")) +
+  ggtitle("Proportion less than 0.9 and Proportion greater than 0.975.")
+```
+
+Most of the methods perform significantly better on the "Less" criterion than the "Greater" criterion, but there are some methods where this is reveresed --- CATEo and CATEla. RUVB and RUVBnn perform about the same under both scenarios.
+
+Connect dots for easier viewing. There is no method that has both a lower mean Greater loss and a lower mean Less loss.
+```{r}
+tempdat <- combdat %>% group_by(Method, Loss) %>%
+  summarise(meanloss = mean(Proportion))
+tempdat$RUVBorRUVBnn <- tempdat$Method == "RUVB" | tempdat$Method == "RUVBnn"
+
+ggplot(data = tempdat, mapping = aes(x = Loss, y = meanloss, group = Method, color = RUVBorRUVBnn)) +
+  geom_line() +
+  theme_bw()
+```
+
+Repeat with by scenario rather than averaging over scenario.
+```{r, fig.height=11, fig.width=9}
+combdat$RUVBorRUVBnn <- combdat$Method == "RUVB" | combdat$Method == "RUVBnn"
+
+factor_vec <- rep("other", length = nrow(combdat))
+factor_vec[stringr::str_detect(combdat$Method, "c$")] <- "c"
+factor_vec[stringr::str_detect(combdat$Method, "m$")] <- "m"
+factor_vec[combdat$Method == "RUVB" | combdat$Method == "RUVBnn"] <- "RUVB"
+combdat$categories <- as.factor(factor_vec)
+
+ggplot(data = combdat, mapping = aes(x = Loss, y = Proportion, group = Method, color = RUVBorRUVBnn)) +
+  geom_line() +
+  facet_grid(Pi0 + NControls ~ SampleSize) +
+  theme_bw() +
+  theme(strip.background = element_rect(fill="white")) 
+
+ggplot(data = combdat, mapping = aes(x = Loss, y = Proportion, group = Method, color = factor_vec)) +
+  geom_line() +
+  facet_grid(Pi0 + NControls ~ SampleSize) +
+  theme_bw() +
+  theme(strip.background = element_rect(fill="white")) 
+```
+
+
+# Summary
+
+* RUVB and RUVBnn perform best under large sample sizes when there are few control genes. But it seems to perform about the same under every scenario. 
+* RUVB and RUVBnn have equal losses for the less than 0.9 and the greater than 0.975 criteria. No other method has equal losses here.
+* Using this criteria, other methods do seem to have better coverage for many of the scenarios, but they are not the same methods for all scenarios (see boxplots).
+* Using this criteron, RUVB seems to be the best method when there are few control genes and the proportion of null genes is 0.5.
+* "m" methods are very very conservative when Pi0 = 0.5 and are very anti-conservative when pi0 =  1. They perform very very well when Pi0 = 0.9.
+* "c" methods perform very pooorly when m = 10 or when n is small. They tend to be too conservative.
+
+```{r}
+sessionInfo()
+```

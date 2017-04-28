@@ -11,7 +11,7 @@
 
 <meta name="author" content="David Gerard" />
 
-<meta name="date" content="2017-04-27" />
+<meta name="date" content="2017-04-28" />
 
 <title>Coverage Plot in RUVB Paper</title>
 
@@ -304,7 +304,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">Coverage Plot in RUVB Paper</h1>
 <h4 class="author"><em>David Gerard</em></h4>
-<h4 class="date"><em>2017-04-27</em></h4>
+<h4 class="date"><em>2017-04-28</em></h4>
 
 </div>
 
@@ -366,8 +366,8 @@ covdat &lt;- read_csv(file = &quot;../../reproduce_ruv3/Output/sims_out/cov_mat2
 right_vals &lt;- str_replace(str_extract(names(covdat)[-(1:5)], &quot;_.+$&quot;), &quot;_&quot;, &quot;&quot;)
 name_vec &lt;- c(&quot;Seed&quot;, &quot;Pi0&quot;, &quot;SampleSize&quot;, &quot;NControls&quot;, &quot;Poisthin&quot;,
               paste0(left_vals, right_vals))
-name_vec[(length(name_vec) - 2):length(name_vec)] &lt;- 
-  paste0(&quot;RUVB&quot;, stringr::str_replace(string = names(covdat)[(length(name_vec) - 2):length(name_vec)],
+name_vec[(length(name_vec) - 3):length(name_vec)] &lt;- 
+  paste0(&quot;RUVB&quot;, stringr::str_replace(string = names(covdat)[(length(name_vec) - 3):length(name_vec)],
                                       pattern = &quot;(ruvb)(.*+)&quot;, replace = &quot;\\2&quot;))
 names(covdat) &lt;- name_vec
 covdat &lt;- select(covdat, -Seed, -Poisthin)
@@ -397,10 +397,10 @@ bestdat &lt;- meddat %&gt;% group_by(Pi0, SampleSize, NControls) %&gt;%
   summarise(Best = get_best(Method, Diff))
 table(bestdat$Best)</code></pre>
 <pre><code>## 
-##   CATEd  CATEdl  CATEdm   CATEo   RUV2l   RUV2m  RUV3la RUV3lac  RUV4lm 
-##       2       6       1       1       2       1       1       1       1 
-##    RUVB 
-##       8</code></pre>
+##   CATEd  CATEdl  CATEdm   CATEo   RUV2c   RUV2l   RUV2m  RUV3la RUV3lac 
+##       2       5       1       1       1       2       1       1       1 
+##  RUV4lm    RUVB  RUVBnn 
+##       1       6       2</code></pre>
 <p>Get the median coverage rankings within each scenario.</p>
 <pre class="r"><code>get_ranks &lt;- function(Diff) {
   rank(abs(Diff))
@@ -485,11 +485,11 @@ temp &lt;- msedat %&gt;% group_by(Method) %&gt;% summarize(Mean = mean(MSE))
 temp$Method[order(temp$Mean)]</code></pre>
 <pre><code>##  [1] &quot;RUV2m&quot;   &quot;RUV3m&quot;   &quot;CATEdm&quot;  &quot;RUV4m&quot;   &quot;CATEm&quot;   &quot;RUVBnl&quot;  &quot;OLSm&quot;   
 ##  [8] &quot;RUV2lm&quot;  &quot;RUV3lam&quot; &quot;RUV4lm&quot;  &quot;RUV3lbm&quot; &quot;RUVBn&quot;   &quot;CATElam&quot; &quot;CATElbm&quot;
-## [15] &quot;RUV2o&quot;   &quot;CATEdlc&quot; &quot;OLSlc&quot;   &quot;CATElac&quot; &quot;RUV4lc&quot;  &quot;CATEdlm&quot; &quot;RUV2lc&quot; 
-## [22] &quot;OLSlm&quot;   &quot;RUV3lb&quot;  &quot;RUV4c&quot;   &quot;CATEc&quot;   &quot;OLSc&quot;    &quot;RUV2c&quot;   &quot;CATEdc&quot; 
-## [29] &quot;CATElbc&quot; &quot;RUV3o&quot;   &quot;CATEd&quot;   &quot;RUV2l&quot;   &quot;RUVB&quot;    &quot;RUV3la&quot;  &quot;CATEdl&quot; 
-## [36] &quot;OLSo&quot;    &quot;RUV3c&quot;   &quot;OLSl&quot;    &quot;RUV3lbc&quot; &quot;CATElb&quot;  &quot;CATEo&quot;   &quot;RUV3lac&quot;
-## [43] &quot;CATEla&quot;  &quot;RUV4o&quot;   &quot;RUV4l&quot;</code></pre>
+## [15] &quot;RUV2o&quot;   &quot;CATEdlm&quot; &quot;OLSlm&quot;   &quot;RUV3lb&quot;  &quot;RUV3o&quot;   &quot;OLSc&quot;    &quot;CATEd&quot;  
+## [22] &quot;RUV2l&quot;   &quot;RUVBnn&quot;  &quot;RUVB&quot;    &quot;OLSlc&quot;   &quot;RUV3la&quot;  &quot;CATEdl&quot;  &quot;OLSo&quot;   
+## [29] &quot;RUV3c&quot;   &quot;RUV2c&quot;   &quot;OLSl&quot;    &quot;RUV3lbc&quot; &quot;CATElb&quot;  &quot;CATEo&quot;   &quot;RUV3lac&quot;
+## [36] &quot;CATEla&quot;  &quot;RUV4o&quot;   &quot;RUV2lc&quot;  &quot;RUV4l&quot;   &quot;CATEdc&quot;  &quot;CATEdlc&quot; &quot;RUV4c&quot;  
+## [43] &quot;RUV4lc&quot;  &quot;CATElbc&quot; &quot;CATEc&quot;   &quot;CATElac&quot;</code></pre>
 <pre class="r"><code>min_mse &lt;- min(temp$Mean)
 ggplot(data = msedat, mapping = aes(x = Method, y = MSE)) +
   geom_boxplot() +
@@ -541,10 +541,8 @@ unique(cdata$Method)</code></pre>
   xlab(&quot;Method&quot;) + ylab(&quot;Coverage&quot;) +
   theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
   theme(strip.background = element_rect(fill=&quot;white&quot;)) +
-  ggtitle(&quot;Coverage&quot;) +
-  ylim(0.85, 1)
+  ggtitle(&quot;Coverage&quot;)
 print(pl)</code></pre>
-<pre><code>## Warning: Removed 636 rows containing non-finite values (stat_boxplot).</code></pre>
 <p><img src="ruvb_paper_plots_coverage_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
 <p>The “lc” methods. I am again seeing similar behavior. Very conservative everywhere except for large n and m. Again, the RUV3c methods don’t work too well (points removed).</p>
 <pre class="r"><code>lcdata &lt;- longdat %&gt;% filter(stringr::str_detect(Method, &quot;(lc|lac|lbc)$&quot;))
@@ -558,15 +556,14 @@ unique(lcdata$Method)</code></pre>
   xlab(&quot;Method&quot;) + ylab(&quot;Coverage&quot;) +
   theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
   theme(strip.background = element_rect(fill=&quot;white&quot;)) +
-  ggtitle(&quot;Coverage&quot;) +
-  ylim(0.8, 1)
+  ggtitle(&quot;Coverage&quot;)
 print(pl)</code></pre>
-<pre><code>## Warning: Removed 1017 rows containing non-finite values (stat_boxplot).</code></pre>
 <p><img src="ruvb_paper_plots_coverage_files/figure-html/unnamed-chunk-15-1.png" width="672" /></p>
 <p>The non “c” and “m” methods.</p>
 <pre class="r"><code>ncmdata &lt;- longdat %&gt;% filter(!stringr::str_detect(Method, &quot;(c|m|l|la|lb)$&quot;))
 unique(ncmdata$Method)</code></pre>
-<pre><code>## [1] &quot;OLSo&quot;  &quot;RUV2o&quot; &quot;RUV3o&quot; &quot;RUV4o&quot; &quot;CATEo&quot; &quot;CATEd&quot; &quot;RUVBn&quot; &quot;RUVB&quot;</code></pre>
+<pre><code>## [1] &quot;OLSo&quot;   &quot;RUV2o&quot;  &quot;RUV3o&quot;  &quot;RUV4o&quot;  &quot;CATEo&quot;  &quot;CATEd&quot;  &quot;RUVBn&quot;  &quot;RUVBnn&quot;
+## [9] &quot;RUVB&quot;</code></pre>
 <pre class="r"><code>pl &lt;- ggplot(data = ncmdata, mapping = aes(y = Coverage, x = Method)) +
   geom_boxplot(outlier.size = 0.2, size = 0.2) +
   facet_grid(Pi0 + NControls ~ SampleSize) +

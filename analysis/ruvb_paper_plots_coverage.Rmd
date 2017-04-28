@@ -48,8 +48,8 @@ left_vals <- toupper(str_replace(str_extract(names(covdat)[-(1:5)], "^.+_"), "_"
 right_vals <- str_replace(str_extract(names(covdat)[-(1:5)], "_.+$"), "_", "")
 name_vec <- c("Seed", "Pi0", "SampleSize", "NControls", "Poisthin",
               paste0(left_vals, right_vals))
-name_vec[(length(name_vec) - 2):length(name_vec)] <- 
-  paste0("RUVB", stringr::str_replace(string = names(covdat)[(length(name_vec) - 2):length(name_vec)],
+name_vec[(length(name_vec) - 3):length(name_vec)] <- 
+  paste0("RUVB", stringr::str_replace(string = names(covdat)[(length(name_vec) - 3):length(name_vec)],
                                       pattern = "(ruvb)(.*+)", replace = "\\2"))
 names(covdat) <- name_vec
 covdat <- select(covdat, -Seed, -Poisthin)
@@ -240,8 +240,7 @@ pl <- ggplot(data = cdata, mapping = aes(y = Coverage, x = Method)) +
   xlab("Method") + ylab("Coverage") +
   theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
   theme(strip.background = element_rect(fill="white")) +
-  ggtitle("Coverage") +
-  ylim(0.85, 1)
+  ggtitle("Coverage")
 print(pl)
 ```
 
@@ -256,8 +255,7 @@ pl <- ggplot(data = lcdata, mapping = aes(y = Coverage, x = Method)) +
   xlab("Method") + ylab("Coverage") +
   theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
   theme(strip.background = element_rect(fill="white")) +
-  ggtitle("Coverage") +
-  ylim(0.8, 1)
+  ggtitle("Coverage")
 print(pl)
 ```
 
@@ -280,4 +278,5 @@ print(pl)
 
 <!-- Insert the session information into the document -->
 ```{r session-info}
+sessionInfo()
 ```
