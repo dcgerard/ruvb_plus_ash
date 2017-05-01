@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+<meta name="author" content="David Gerard" />
+
+<meta name="date" content="2017-05-01" />
+
+<title>Only the Best</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-1.1/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-1.1/highlight.js"></script>
+<link href="site_libs/font-awesome-4.5.0/css/font-awesome.min.css" rel="stylesheet" />
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs && document.readyState && document.readyState === "complete") {
+   window.setTimeout(function() {
+      hljs.initHighlighting();
+   }, 0);
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 51px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+
+.section h2 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h3 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h4 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h5 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h6 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+  padding-left: 25px;
+  text-indent: 0;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">ruvb_plus_ash</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/jdblischak/workflowr">
+    <span class="fa fa-github"></span>
+     
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Only the Best</h1>
+<h4 class="author"><em>David Gerard</em></h4>
+<h4 class="date"><em>2017-05-01</em></h4>
+
+</div>
+
+
+<!-- The file analysis/chunks.R contains chunks that define default settings
+shared across the workflowr files. -->
+<div id="abstract" class="section level1">
+<h1>Abstract</h1>
+<p>I calculate bootstrap confidence intervals for losses: Proportion of times coverage is less than 0.9 (Less) and proportion of times coverage is greater than 0.975 (Greater). I calculate these intervals for the best performing methods: RUVB, RUVBnn, RUV2o, RUV2l, RUV3o, and RUV3la.</p>
+</div>
+<div id="summary" class="section level1">
+<h1>Summary</h1>
+<ul>
+<li>RUVB dominates all other methods when both n and m is large.</li>
+<li>RUV2 dominates all methods (possibly not RUV3) when n is small.</li>
+<li>For all other scenarios, RUVB does better for the Greater than 0.975 loss and worse for the Less than 0.9 loss. Though RUVB has about the same values for these two losses. This is not true of the other methods.</li>
+</ul>
+</div>
+<div id="key" class="section level1">
+<h1>Key</h1>
+<p>Here, I explore six mean methods:</p>
+<ul>
+<li>OLS (no confounder adjustment)</li>
+<li>CATE</li>
+<li>RUV4</li>
+<li>RUV3</li>
+<li>RUV2</li>
+<li>RUVB</li>
+</ul>
+<p>I estimate the variances with the mean methods in different combinations. The key for this is:</p>
+<ul>
+<li>o = Original.</li>
+<li>n = <span class="math inline">\(t\)</span> approximation for the likelihood in RUVB.</li>
+<li>nn = normal approximation for the likelihood in RUVB.</li>
+<li>m = MAD variance inflation.</li>
+<li>c = control-gene calibrated.</li>
+<li>l = Limma-adjusted.</li>
+<li>lb = limma-adjusted Before GLS (for either CATE or RUV3).</li>
+<li>la = limma-adjusted After GLS (for either CATE or RUV3).</li>
+<li>d = Delta-adjustment from CATE package (additive variance inflation).</li>
+</ul>
+<div id="read-in-data" class="section level2">
+<h2>Read in Data</h2>
+<pre class="r"><code>library(tidyverse)
+library(stringr)
+covdat &lt;- read_csv(file = &quot;../../reproduce_ruv3/Output/sims_out/cov_mat2.csv&quot;)
+left_vals &lt;- toupper(str_replace(str_extract(names(covdat)[-(1:5)], &quot;^.+_&quot;), &quot;_&quot;, &quot;&quot;))
+right_vals &lt;- str_replace(str_extract(names(covdat)[-(1:5)], &quot;_.+$&quot;), &quot;_&quot;, &quot;&quot;)
+name_vec &lt;- c(&quot;Seed&quot;, &quot;Pi0&quot;, &quot;SampleSize&quot;, &quot;NControls&quot;, &quot;Poisthin&quot;,
+              paste0(left_vals, right_vals))
+name_vec[(length(name_vec) - 3):length(name_vec)] &lt;-
+  paste0(&quot;RUVB&quot;, stringr::str_replace(string = names(covdat)[(length(name_vec) - 3):length(name_vec)],
+                                      pattern = &quot;(ruvb)(.*+)&quot;, replace = &quot;\\2&quot;))
+names(covdat) &lt;- name_vec
+covdat &lt;- select(covdat, Pi0, SampleSize, NControls, OLSo, RUV2o,
+                 RUV2l, RUV3o, RUV3la, RUVB, RUVBnn)
+longdat &lt;- gather(data = covdat, key = &quot;Method&quot;, value = &quot;Coverage&quot;, -(1:3))</code></pre>
+</div>
+<div id="loss-plot" class="section level2">
+<h2>Loss Plot</h2>
+<p>Here is a loss function plot with only the best methods.</p>
+<pre class="r"><code>## Now the loss function plot
+less9 &lt;- function(x) {
+  s1 &lt;- mean(x &lt; 0.9)
+}
+
+g0975 &lt;- function(x) {
+  s2 &lt;- mean(x &gt; 0.975)
+}
+
+boot_loss &lt;- function(cov_vec, bootmax = 5000) {
+  gvec &lt;- rep(NA, bootmax)
+  lvec &lt;- rep(NA, bootmax)
+  for (index in 1:bootmax) {
+    new_cov &lt;- sample(cov_vec, replace = TRUE)    
+    gvec[index] &lt;- g0975(new_cov)
+    lvec[index] &lt;- less9(new_cov)
+  }
+  intvec &lt;- c(quantile(lvec, probs = c(0.025, 0.975)), quantile(gvec, probs = c(0.025, 0.975)))
+  return(intvec)
+}
+
+
+
+pi_vec &lt;- unique(longdat$Pi0)
+samp_vec &lt;- unique(longdat$SampleSize)
+nc_vec &lt;- unique(longdat$NControls)
+method_vec &lt;- unique(longdat$Method)
+cond_df &lt;- as_data_frame(expand.grid(pi_vec, samp_vec, nc_vec, method_vec))
+names(cond_df) &lt;- c(&quot;Pi0&quot;, &quot;SampleSize&quot;, &quot;NControls&quot;, &quot;Method&quot;)
+cond_df$Less &lt;- rep(NA, nrow(cond_df))
+cond_df$Greater &lt;- rep(NA, nrow(cond_df))
+cond_df$LessLower &lt;- rep(NA, nrow(cond_df))
+cond_df$LessUpper &lt;- rep(NA, nrow(cond_df))
+cond_df$GreaterLower &lt;- rep(NA, nrow(cond_df))
+cond_df$GreaterUpper &lt;- rep(NA, nrow(cond_df))
+
+for (index in 1:nrow(cond_df)) {
+  tempdat &lt;- filter(longdat, Pi0 == cond_df$Pi0[index], SampleSize == cond_df$SampleSize[index],
+                    NControls == cond_df$NControls[index], Method == cond_df$Method[index])
+  qvec &lt;- boot_loss(tempdat$Coverage)
+  cond_df$Less[index] &lt;- less9(tempdat$Coverage)
+  cond_df$Greater[index] &lt;- g0975(tempdat$Coverage)
+  cond_df$LessLower[index] &lt;- qvec[1]
+  cond_df$LessUpper[index] &lt;- qvec[2]
+  cond_df$GreaterLower[index] &lt;- qvec[3]
+  cond_df$GreaterUpper[index] &lt;- qvec[4]
+}
+
+tempdf &lt;- gather(cond_df, key = &quot;LossType&quot;, value = &quot;Loss&quot;, Less, Greater)
+tempdf$Lower &lt;- tempdf$LessLower
+tempdf$Lower[tempdf$LossType == &quot;Greater&quot;] &lt;- tempdf$GreaterLower[tempdf$LossType == &quot;Greater&quot;]
+tempdf$Upper &lt;- tempdf$LessUpper
+tempdf$Upper[tempdf$LossType == &quot;Greater&quot;] &lt;- tempdf$GreaterUpper[tempdf$LossType == &quot;Greater&quot;]
+
+lossdf &lt;- select(tempdf, Pi0, SampleSize, NControls, Method, LossType, Loss, Lower, Upper)
+
+
+pl &lt;- ggplot(data = filter(lossdf, Method != &quot;OLSo&quot;), mapping = aes(x = LossType, y = Loss,
+                                     group = Method,
+                                     color = Method)) +
+  geom_line() +
+  facet_grid(Pi0 + NControls ~ SampleSize) +
+  theme_bw() +
+  theme(strip.background = element_rect(fill=&quot;white&quot;)) +
+  xlab(&quot;Loss Type&quot;) +
+  ylab(&quot;Loss&quot;) +
+  coord_cartesian(xlim = c(1.45, 1.55)) +
+  geom_linerange(mapping = aes(ymin = Lower, ymax = Upper),
+                 position = position_dodge(width = 0.2))
+print(pl)</code></pre>
+<p><img src="ruvb_loss_boot_files/figure-html/unnamed-chunk-2-1.png" width="864" /></p>
+<p>In the above plot, I jittered the confidence region (only along the x-axis, not the y-axis of course) for viewability.</p>
+<p>The results are very similar for the different values of Pi0. Looking at just Pi0 = 0.9, we have:</p>
+<pre class="r"><code>pl &lt;- ggplot(data = filter(lossdf, Method != &quot;OLSo&quot;, Pi0 == 0.9), mapping = aes(x = LossType, y = Loss,
+                                     group = Method,
+                                     color = Method)) +
+  geom_line() +
+  facet_grid(Pi0 + NControls ~ SampleSize) +
+  theme_bw() +
+  theme(strip.background = element_rect(fill=&quot;white&quot;)) +
+  xlab(&quot;Loss Type&quot;) +
+  ylab(&quot;Loss&quot;) +
+  coord_cartesian(xlim = c(1.45, 1.55)) +
+  geom_linerange(mapping = aes(ymin = Lower, ymax = Upper),
+                 position = position_dodge(width = 0.2))
+print(pl)</code></pre>
+<p><img src="ruvb_loss_boot_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+</div>
+</div>
+<div id="session-information" class="section level1">
+<h1>Session information</h1>
+<!-- Insert the session information into the document -->
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>## R version 3.3.2 (2016-10-31)
+## Platform: x86_64-pc-linux-gnu (64-bit)
+## Running under: Ubuntu 16.04.2 LTS
+## 
+## locale:
+##  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+##  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+##  [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+##  [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+##  [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+## [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+## 
+## attached base packages:
+## [1] stats     graphics  grDevices utils     datasets  methods   base     
+## 
+## other attached packages:
+## [1] stringr_1.2.0   dplyr_0.5.0     purrr_0.2.2     readr_1.0.0    
+## [5] tidyr_0.6.1     tibble_1.2      ggplot2_2.2.1   tidyverse_1.1.1
+## 
+## loaded via a namespace (and not attached):
+##  [1] Rcpp_0.12.10     plyr_1.8.4       forcats_0.2.0    tools_3.3.2     
+##  [5] digest_0.6.12    jsonlite_1.3     lubridate_1.6.0  evaluate_0.10   
+##  [9] nlme_3.1-131     gtable_0.2.0     lattice_0.20-34  psych_1.6.12    
+## [13] DBI_0.6          yaml_2.1.14      parallel_3.3.2   haven_1.0.0     
+## [17] xml2_1.1.1       httr_1.2.1       knitr_1.15.1     hms_0.3         
+## [21] rprojroot_1.2    grid_3.3.2       R6_2.2.0         readxl_0.1.1    
+## [25] foreign_0.8-67   rmarkdown_1.3    modelr_0.1.0     reshape2_1.4.2  
+## [29] magrittr_1.5     backports_1.0.5  scales_0.4.1     htmltools_0.3.5 
+## [33] rvest_0.3.2      assertthat_0.2.0 mnormt_1.5-5     colorspace_1.3-2
+## [37] labeling_0.3     stringi_1.1.2    lazyeval_0.2.0   munsell_0.4.3   
+## [41] broom_0.4.2</code></pre>
+</div>
+
+<hr>
+<p>
+    This site was created with <a href="http://rmarkdown.rstudio.com">R Markdown</a>
+</p>
+<hr>
+
+<!-- To enable disqus, uncomment the section below and provide your disqus_shortname -->
+
+<!-- disqus
+  <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'rmarkdown'; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+-->
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

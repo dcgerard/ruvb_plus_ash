@@ -1,0 +1,171 @@
+---
+title: "Only the Best"
+author: "David Gerard"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+<!-- The file analysis/chunks.R contains chunks that define default settings
+shared across the workflowr files. -->
+```{r read-chunk, include=FALSE, cache=FALSE}
+knitr::read_chunk("chunks.R")
+```
+
+# Abstract
+
+I calculate bootstrap confidence intervals for losses: Proportion of times coverage is less than 0.9 (Less) and proportion of times coverage is greater than 0.975 (Greater). I calculate these intervals for the best performing methods: RUVB, RUVBnn, RUV2o, RUV2l, RUV3o, and RUV3la.
+
+# Summary
+
+* RUVB dominates all other methods when both n and m is large.
+* RUV2 dominates all methods (possibly not RUV3) when n is small.
+* For all other scenarios, RUVB does better for the Greater than 0.975 loss and worse for the Less than 0.9 loss. Though RUVB has about the same values for these two losses. This is not true of the other methods.
+
+
+
+# Key
+
+Here, I explore six mean methods:
+
+* OLS (no confounder adjustment)
+* CATE
+* RUV4
+* RUV3
+* RUV2
+* RUVB
+
+I estimate the variances with the mean methods in different combinations. The key for this is:
+
+* o = Original.
+* n = $t$ approximation for the likelihood in RUVB.
+* nn = normal approximation for the likelihood in RUVB.
+* m = MAD variance inflation.
+* c = control-gene calibrated.
+* l = Limma-adjusted.
+* lb = limma-adjusted Before GLS (for either CATE or RUV3).
+* la = limma-adjusted After GLS (for either CATE or RUV3).
+* d = Delta-adjustment from CATE package (additive variance inflation).
+
+## Read in Data
+
+```{r, message=FALSE}
+library(tidyverse)
+library(stringr)
+covdat <- read_csv(file = "../../reproduce_ruv3/Output/sims_out/cov_mat2.csv")
+left_vals <- toupper(str_replace(str_extract(names(covdat)[-(1:5)], "^.+_"), "_", ""))
+right_vals <- str_replace(str_extract(names(covdat)[-(1:5)], "_.+$"), "_", "")
+name_vec <- c("Seed", "Pi0", "SampleSize", "NControls", "Poisthin",
+              paste0(left_vals, right_vals))
+name_vec[(length(name_vec) - 3):length(name_vec)] <-
+  paste0("RUVB", stringr::str_replace(string = names(covdat)[(length(name_vec) - 3):length(name_vec)],
+                                      pattern = "(ruvb)(.*+)", replace = "\\2"))
+names(covdat) <- name_vec
+covdat <- select(covdat, Pi0, SampleSize, NControls, OLSo, RUV2o,
+                 RUV2l, RUV3o, RUV3la, RUVB, RUVBnn)
+longdat <- gather(data = covdat, key = "Method", value = "Coverage", -(1:3))
+```
+
+## Loss Plot
+
+Here is a loss function plot with only the best methods.
+```{r, fig.height=11, fig.width=9}
+## Now the loss function plot
+less9 <- function(x) {
+  s1 <- mean(x < 0.9)
+}
+
+g0975 <- function(x) {
+  s2 <- mean(x > 0.975)
+}
+
+boot_loss <- function(cov_vec, bootmax = 5000) {
+  gvec <- rep(NA, bootmax)
+  lvec <- rep(NA, bootmax)
+  for (index in 1:bootmax) {
+    new_cov <- sample(cov_vec, replace = TRUE)    
+    gvec[index] <- g0975(new_cov)
+    lvec[index] <- less9(new_cov)
+  }
+  intvec <- c(quantile(lvec, probs = c(0.025, 0.975)), quantile(gvec, probs = c(0.025, 0.975)))
+  return(intvec)
+}
+
+
+
+pi_vec <- unique(longdat$Pi0)
+samp_vec <- unique(longdat$SampleSize)
+nc_vec <- unique(longdat$NControls)
+method_vec <- unique(longdat$Method)
+cond_df <- as_data_frame(expand.grid(pi_vec, samp_vec, nc_vec, method_vec))
+names(cond_df) <- c("Pi0", "SampleSize", "NControls", "Method")
+cond_df$Less <- rep(NA, nrow(cond_df))
+cond_df$Greater <- rep(NA, nrow(cond_df))
+cond_df$LessLower <- rep(NA, nrow(cond_df))
+cond_df$LessUpper <- rep(NA, nrow(cond_df))
+cond_df$GreaterLower <- rep(NA, nrow(cond_df))
+cond_df$GreaterUpper <- rep(NA, nrow(cond_df))
+
+for (index in 1:nrow(cond_df)) {
+  tempdat <- filter(longdat, Pi0 == cond_df$Pi0[index], SampleSize == cond_df$SampleSize[index],
+                    NControls == cond_df$NControls[index], Method == cond_df$Method[index])
+  qvec <- boot_loss(tempdat$Coverage)
+  cond_df$Less[index] <- less9(tempdat$Coverage)
+  cond_df$Greater[index] <- g0975(tempdat$Coverage)
+  cond_df$LessLower[index] <- qvec[1]
+  cond_df$LessUpper[index] <- qvec[2]
+  cond_df$GreaterLower[index] <- qvec[3]
+  cond_df$GreaterUpper[index] <- qvec[4]
+}
+
+tempdf <- gather(cond_df, key = "LossType", value = "Loss", Less, Greater)
+tempdf$Lower <- tempdf$LessLower
+tempdf$Lower[tempdf$LossType == "Greater"] <- tempdf$GreaterLower[tempdf$LossType == "Greater"]
+tempdf$Upper <- tempdf$LessUpper
+tempdf$Upper[tempdf$LossType == "Greater"] <- tempdf$GreaterUpper[tempdf$LossType == "Greater"]
+
+lossdf <- select(tempdf, Pi0, SampleSize, NControls, Method, LossType, Loss, Lower, Upper)
+
+
+pl <- ggplot(data = filter(lossdf, Method != "OLSo"), mapping = aes(x = LossType, y = Loss,
+                                     group = Method,
+                                     color = Method)) +
+  geom_line() +
+  facet_grid(Pi0 + NControls ~ SampleSize) +
+  theme_bw() +
+  theme(strip.background = element_rect(fill="white")) +
+  xlab("Loss Type") +
+  ylab("Loss") +
+  coord_cartesian(xlim = c(1.45, 1.55)) +
+  geom_linerange(mapping = aes(ymin = Lower, ymax = Upper),
+                 position = position_dodge(width = 0.2))
+print(pl)
+```
+
+In the above plot, I jittered the confidence region (only along the x-axis, not the y-axis of course) for viewability.
+
+
+The results are very similar for the different values of Pi0. Looking at just Pi0 = 0.9, we have:
+
+```{r}
+
+pl <- ggplot(data = filter(lossdf, Method != "OLSo", Pi0 == 0.9), mapping = aes(x = LossType, y = Loss,
+                                     group = Method,
+                                     color = Method)) +
+  geom_line() +
+  facet_grid(Pi0 + NControls ~ SampleSize) +
+  theme_bw() +
+  theme(strip.background = element_rect(fill="white")) +
+  xlab("Loss Type") +
+  ylab("Loss") +
+  coord_cartesian(xlim = c(1.45, 1.55)) +
+  geom_linerange(mapping = aes(ymin = Lower, ymax = Upper),
+                 position = position_dodge(width = 0.2))
+print(pl)
+```
+
+# Session information
+
+<!-- Insert the session information into the document -->
+```{r session-info}
+sessionInfo()
+```
