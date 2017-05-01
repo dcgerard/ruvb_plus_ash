@@ -25,6 +25,7 @@ output:
 * [Coverage plots looking at losses < 0.9 or > 0.975](coverage_try_2.html). RUVB is relatively stable under both losses and over all scenarios. This is not true of any other method.
 * [With lots of boxplots, narrowed down best methods to RUVB, RUVBnn, RUV2, RUV2l, RUV3o, and RUV3la](ruvb_vs_all_boxplots.html). Other possibilities are CATEd and CATEdl.
 * [Loss plots show same favorites as above.](ruvb_vs_all_lossplots.html)
+* [Boxplots, loss plots, and median plots of just the best methods](ruvb_in_depth_best_methods.html). RUVB does best in terms of median coverage and for larger sample sizes it seems that RUVB might also do better when there are more control genes, but I need to test this.
 
 [rmarkdown]: http://rmarkdown.rstudio.com/rmarkdown_websites.htm
 [rstudio]: https://www.rstudio.com/products/rstudio/download/preview/
