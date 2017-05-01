@@ -229,6 +229,7 @@ $(document).ready(function () {
 <li><a href="ruvb_paper_plots_coverage.html">Coverage plot needs more work</a>. In particular, I am afraid that I coded up the “c” methods incorrectly. I need to double check them.</li>
 <li><a href="check_c_inflation.html">Small difference between Gagnon-Bartsch variance inflation and my variance inflation</a>. When I use the maximum-likelihood approach, this results in a small multiplicative difference that basically amounts to using <code>solve(crossprod(X))</code> vs <code>solve(crossprod(cbind(X, Z)))</code>.</li>
 <li><a href="coverage_try_2.html">Coverage plots looking at losses &lt; 0.9 or &gt; 0.975</a>. RUVB is relatively stable under both losses and over all scenarios. This is not true of any other method.</li>
+<li><a href="ruvb_vs_all_boxplots.html">With lots of boxplots, narrowed down best methods to RUVB, RUVBnn, RUV2, RUV2l, RUV3o, and RUV3la</a>. Other possibilities are CATEd and CATEdl.</li>
 </ul>
 </div>
 
