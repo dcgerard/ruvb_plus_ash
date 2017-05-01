@@ -1,0 +1,152 @@
+---
+title: "Only the Best"
+author: "David Gerard"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+<!-- The file analysis/chunks.R contains chunks that define default settings
+shared across the workflowr files. -->
+```{r read-chunk, include=FALSE, cache=FALSE}
+knitr::read_chunk("chunks.R")
+```
+
+# Abstract
+
+Here, I look at the methods which I have narrowed down to being the best in terms of coverage. Specifically, they are RUVB, RUVBnn, RUV2o, RUV2l, RUV3o, and RUV3la, (possibly also CATEd and CATEdl). Note that these are just the non-adjusted versions of all of the mean-methods I looked at.
+
+# Summary
+
+
+
+# Key
+
+Here, I explore six mean methods:
+
+* OLS (no confounder adjustment)
+* CATE
+* RUV4
+* RUV3
+* RUV2
+* RUVB
+
+I estimate the variances with the mean methods in different combinations. The key for this is:
+
+* o = Original.
+* n = $t$ approximation for the likelihood in RUVB.
+* nn = normal approximation for the likelihood in RUVB.
+* m = MAD variance inflation.
+* c = control-gene calibrated.
+* l = Limma-adjusted.
+* lb = limma-adjusted Before GLS (for either CATE or RUV3).
+* la = limma-adjusted After GLS (for either CATE or RUV3).
+* d = Delta-adjustment from CATE package (additive variance inflation).
+
+## Read in Data
+
+```{r, message=FALSE}
+library(tidyverse)
+library(stringr)
+covdat <- read_csv(file = "../../reproduce_ruv3/Output/sims_out/cov_mat2.csv")
+left_vals <- toupper(str_replace(str_extract(names(covdat)[-(1:5)], "^.+_"), "_", ""))
+right_vals <- str_replace(str_extract(names(covdat)[-(1:5)], "_.+$"), "_", "")
+name_vec <- c("Seed", "Pi0", "SampleSize", "NControls", "Poisthin",
+              paste0(left_vals, right_vals))
+name_vec[(length(name_vec) - 3):length(name_vec)] <-
+  paste0("RUVB", stringr::str_replace(string = names(covdat)[(length(name_vec) - 3):length(name_vec)],
+                                      pattern = "(ruvb)(.*+)", replace = "\\2"))
+names(covdat) <- name_vec
+covdat <- select(covdat, Pi0, SampleSize, NControls, OLSo, RUV2o,
+                 RUV2l, RUV3o, RUV3la, RUVB, RUVBnn)
+longdat <- gather(data = covdat, key = "Method", value = "Coverage", -(1:3))
+```
+
+## Boxplot
+
+Here is a boxplot of just the best methods.
+
+```{r, fig.height=11, fig.width=9}
+pl <- ggplot(data = filter(longdat, Method != "OLSo"), mapping = aes(x = Method, y = Coverage)) +
+  geom_boxplot(outlier.size = 0.2, size = 0.2) +
+  facet_grid(Pi0 + NControls ~ SampleSize) +
+  geom_hline(yintercept = 0.95, lty = 2) +
+  theme_bw() +
+  theme(strip.background = element_rect(fill = "white"),
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+print(pl)
+```
+
+## Loss Plot
+
+Here is a loss function plot with only the best methods.
+```{r, fig.height=11, fig.width=9}
+## Now the loss function plot
+less9 <- function(x) {
+  s1 <- mean(x < 0.9)
+}
+
+g0975 <- function(x) {
+  s2 <- mean(x > 0.975)
+}
+
+sumdat <- longdat %>% group_by(Pi0, SampleSize, NControls, Method) %>%
+  summarise(Less = less9(Coverage), Greater = g0975(Coverage)) %>%
+  ungroup() %>%
+  mutate(Loss = Less + Greater)
+combdat <- select(sumdat, Pi0, SampleSize, NControls, Method, Less, Greater) %>%
+  gather(key = "Loss", value = "Proportion", Less, Greater)
+sumdat <- group_by(longdat, Pi0, SampleSize, NControls, Method) %>%
+  summarise(lower = quantile(Coverage, probs = 0.025),
+            upper = quantile(Coverage, probs = 0.975)) %>%
+  ungroup()
+
+pl <- ggplot(data = filter(combdat, Method != "OLSo"), mapping = aes(x = Loss, y = Proportion,
+                                     group = Method,
+                                     color = Method)) +
+  geom_line() +
+  facet_grid(Pi0 + NControls ~ SampleSize) +
+  theme_bw() +
+  theme(strip.background = element_rect(fill="white")) +
+  xlab("Loss Type") +
+  ylab("Loss") +
+  coord_cartesian(xlim = c(1.45, 1.55))
+print(pl)
+```
+
+## Plot of Medians
+
+```{r}
+CIlower <- function(x) {
+  bootmed = apply(matrix(sample(x, replace = TRUE, 10 ^ 4 * length(x)), nrow=10^4), 1, median)
+  quantile(bootmed, .025)
+}
+CIupper <- function(x) {
+  bootmed = apply(matrix(sample(x, replace = TRUE, 10 ^ 4 * length(x)), nrow=10^4), 1, median)
+  quantile(bootmed, .975)
+}
+
+meddat <- gather(covdat, key = "Method", value = "Coverage", OLSo:RUVBnn) %>%
+  group_by(Pi0, SampleSize, NControls, Method) %>%
+  summarise(Median = median(Coverage), Lower = CIlower(Coverage), Upper = CIupper(Coverage)) %>%
+  ungroup()
+
+
+ggplot(data = meddat, mapping = aes(y = Median, x = SampleSize, group = Method, color = Method)) +
+  geom_line() +
+  facet_grid(Pi0 ~ NControls) +
+  geom_hline(yintercept = 0.95, lty = 2) +
+  theme_bw() +
+  theme(strip.background = element_rect(fill = "white")) +
+  xlab("Sample Size") +
+  ylab("Median Coverage") +
+  geom_linerange(mapping = aes(ymin = Lower, ymax = Upper)) +
+  ggtitle("Median Coverage with 95% Confidence Intervals for Median")
+```
+
+
+# Session information
+
+<!-- Insert the session information into the document -->
+```{r session-info}
+sessionInfo()
+```
