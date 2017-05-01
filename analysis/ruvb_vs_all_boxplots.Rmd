@@ -1,0 +1,112 @@
+---
+title: "RUVB vs All Boxplots"
+author: "David Gerard"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+<!-- The file analysis/chunks.R contains chunks that define default settings
+shared across the workflowr files. -->
+```{r read-chunk, include=FALSE, cache=FALSE}
+knitr::read_chunk("chunks.R")
+```
+
+# Abstract
+
+Here, I make a bunch of boxplots of coverage with RUVB and just one other method. These are just a bunch of plots so that I can look at them.
+
+# Summary
+After looking at the boxplots, these are my thoughts:
+
+* As I noted before, MAD adjustments (green) are conservative for Pi0 = 0.5 and anticonservative for Pi0 = 1. This is true for all methods.
+* Control gene variance adjustments (red) do not work when there are few control genes.
+* None of the RUV4-type methods perform unbiasedly in all scenarios (though the CATEd comes close with only being conservative when n is large and there are few control genes).
+* I will now list the methods that just by eye seem like they perform competitively. By this I mean they don't seem too conservative or anticonservative in any scenario. They are RUVB, RUVBnn, RUV2, RUV2l, RUV3o, RUV3la (NOT RUV3lb).
+* The best RUVB methods are RUVB and RUVBnn (not the t-based methods).
+
+# Key
+
+Here, I explore six mean methods:
+
+* OLS (no confounder adjustment)
+* CATE
+* RUV4
+* RUV3
+* RUV2
+* RUVB
+
+I estimate the variances with the mean methods in different combinations. The key for this is:
+
+* o = Original.
+* n = $t$ approximation for the likelihood in RUVB.
+* nn = normal approximation for the likelihood in RUVB.
+* m = MAD variance inflation.
+* c = control-gene calibrated.
+* l = Limma-adjusted.
+* lb = limma-adjusted Before GLS (for either CATE or RUV3).
+* la = limma-adjusted After GLS (for either CATE or RUV3).
+* d = Delta-adjustment from CATE package (additive variance inflation).
+
+# Boxplots
+
+## Read in Data
+
+```{r, message=FALSE}
+library(tidyverse)
+library(stringr)
+covdat <- read_csv(file = "../../reproduce_ruv3/Output/sims_out/cov_mat2.csv")
+left_vals <- toupper(str_replace(str_extract(names(covdat)[-(1:5)], "^.+_"), "_", ""))
+right_vals <- str_replace(str_extract(names(covdat)[-(1:5)], "_.+$"), "_", "")
+name_vec <- c("Seed", "Pi0", "SampleSize", "NControls", "Poisthin",
+              paste0(left_vals, right_vals))
+name_vec[(length(name_vec) - 3):length(name_vec)] <-
+  paste0("RUVB", stringr::str_replace(string = names(covdat)[(length(name_vec) - 3):length(name_vec)],
+                                      pattern = "(ruvb)(.*+)", replace = "\\2"))
+names(covdat) <- name_vec
+covdat <- select(covdat, -Seed, -Poisthin)
+
+other_methods <- names(covdat)[-(1:3)]
+other_methods <- other_methods[!stringr::str_detect(other_methods, "RUVB")]
+
+which_ruvb <- stringr::str_detect(names(covdat), "RUVB")
+```
+
+## Now the boxplots:
+
+```{r, fig.height=11, fig.width=9}
+for (index in 1:length(other_methods)) {
+  which_columns <- names(covdat) == other_methods[index] | which_ruvb
+  which_columns[1:3] <- TRUE
+  longdat <- gather(data = covdat[which_columns], key = "Method", value = "Coverage", -(1:3))
+  
+  if (stringr::str_detect(other_methods[index], "m")) {
+    color_vec <- c("green", "purple")
+  } else if (stringr::str_detect(other_methods[index], "c")) {
+    color_vec <- c("red", "purple")
+  } else {
+    color_vec <- c("blue", "purple")
+  }
+  names(color_vec) <- c(other_methods[index], "RUVB")  
+  log_vec <- stringr::str_detect(longdat$Method, "RUVB")
+  category <- rep("RUVB", length = nrow(longdat))
+  category[!log_vec] <- other_methods[index]
+  longdat$category <- category
+  
+  pl <- ggplot(data = longdat, mapping = aes(y = Coverage, x = Method, fill = category)) +
+    geom_boxplot(outlier.size = 0.2, size = 0.2) +
+    facet_grid(Pi0 + NControls ~ SampleSize) +
+    geom_hline(yintercept = 0.95, lty = 2) +
+    theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+    theme(strip.background = element_rect(fill="white")) +
+    ggtitle(paste0(other_methods[index])) +
+    scale_fill_manual(values = color_vec)
+  print(pl)
+}
+```
+
+# Session information
+
+<!-- Insert the session information into the document -->
+```{r session-info}
+sessionInfo()
+```
