@@ -1,0 +1,113 @@
+---
+title: "RUVB vs All Loss Plots"
+author: "David Gerard"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+<!-- The file analysis/chunks.R contains chunks that define default settings
+shared across the workflowr files. -->
+```{r read-chunk, include=FALSE, cache=FALSE}
+knitr::read_chunk("chunks.R")
+```
+
+# Abstract
+
+Here, I make a bunch of lossplots of RUVB vs everything else.
+
+# Summary
+After looking at the lossplots, here are my thoughts:
+
+* RUVB and RUVBnn have almost the exact same coverage.
+* RUV2o and RUV3o work really well and outperform RUVB for small n.
+* RUV3la and RUV2l are competitive but no where completely beat RUVB.
+* No other method is competitive everywhere.
+
+# Key
+
+Here, I explore six mean methods:
+
+* OLS (no confounder adjustment)
+* CATE
+* RUV4
+* RUV3
+* RUV2
+* RUVB
+
+I estimate the variances with the mean methods in different combinations. The key for this is:
+
+* o = Original.
+* n = $t$ approximation for the likelihood in RUVB.
+* nn = normal approximation for the likelihood in RUVB.
+* m = MAD variance inflation.
+* c = control-gene calibrated.
+* l = Limma-adjusted.
+* lb = limma-adjusted Before GLS (for either CATE or RUV3).
+* la = limma-adjusted After GLS (for either CATE or RUV3).
+* d = Delta-adjustment from CATE package (additive variance inflation).
+
+# Boxplots
+
+## Read in Data
+
+```{r, message=FALSE}
+library(tidyverse)
+library(stringr)
+covdat <- read_csv(file = "../../reproduce_ruv3/Output/sims_out/cov_mat2.csv")
+left_vals <- toupper(str_replace(str_extract(names(covdat)[-(1:5)], "^.+_"), "_", ""))
+right_vals <- str_replace(str_extract(names(covdat)[-(1:5)], "_.+$"), "_", "")
+name_vec <- c("Seed", "Pi0", "SampleSize", "NControls", "Poisthin",
+              paste0(left_vals, right_vals))
+name_vec[(length(name_vec) - 3):length(name_vec)] <-
+  paste0("RUVB", stringr::str_replace(string = names(covdat)[(length(name_vec) - 3):length(name_vec)],
+                                      pattern = "(ruvb)(.*+)", replace = "\\2"))
+names(covdat) <- name_vec
+covdat <- select(covdat, -Seed, -Poisthin)
+
+other_methods <- names(covdat)[-(1:3)]
+other_methods <- other_methods[!stringr::str_detect(other_methods, "RUVB")]
+
+which_ruvb <- stringr::str_detect(names(covdat), "RUVB")
+```
+
+## Now the lossplots:
+
+```{r, fig.height=11, fig.width=9}
+less9 <- function(x) {
+  s1 <- mean(x < 0.9)
+}
+
+g0975 <- function(x) {
+  s2 <- mean(x > 0.975)
+}
+
+for (index in 1:length(other_methods)) {
+  which_columns <- names(covdat) == other_methods[index] | which_ruvb
+  which_columns[1:3] <- TRUE
+  longdat <- gather(data = covdat[which_columns], key = "Method", value = "Coverage", -(1:3))
+  sumdat <- longdat %>% group_by(Pi0, SampleSize, NControls, Method) %>%
+    summarise(Less = less9(Coverage), Greater = g0975(Coverage)) %>%
+    ungroup()
+  combdat <- select(sumdat, Pi0, SampleSize, NControls, Method, Less, Greater) %>%
+    gather(key = "Loss", value = "Proportion", Less, Greater)
+  
+  pl <- ggplot(data = combdat, mapping = aes(x = Loss, y = Proportion,
+                                             group = Method, color = Method)) +
+    geom_line() +
+    facet_grid(Pi0 + NControls ~ SampleSize) +
+    theme_bw() +
+    theme(strip.background = element_rect(fill="white")) +
+    coord_cartesian(xlim = c(1.45, 1.55)) +
+    xlab("Loss Type") +
+    ylab("Loss") +
+    ggtitle(other_methods[index])
+  print(pl)
+}
+```
+
+# Session information
+
+<!-- Insert the session information into the document -->
+```{r session-info}
+sessionInfo()
+```
