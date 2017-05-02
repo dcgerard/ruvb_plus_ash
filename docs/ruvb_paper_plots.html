@@ -11,7 +11,7 @@
 
 <meta name="author" content="David Gerard" />
 
-<meta name="date" content="2017-04-27" />
+<meta name="date" content="2017-05-02" />
 
 <title>AUC Plot in RUVB Paper</title>
 
@@ -304,7 +304,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">AUC Plot in RUVB Paper</h1>
 <h4 class="author"><em>David Gerard</em></h4>
-<h4 class="date"><em>2017-04-27</em></h4>
+<h4 class="date"><em>2017-05-02</em></h4>
 
 </div>
 
@@ -329,7 +329,8 @@ shared across the workflowr files. -->
 <p>I estimate the variances with the mean methods in different combinations. The key for this is:</p>
 <ul>
 <li>o = Original.</li>
-<li>n = Normal or <span class="math inline">\(t\)</span> approximation for the likelihood in RUVB.</li>
+<li>n = <span class="math inline">\(t\)</span> approximation for the likelihood in RUVB.</li>
+<li>nn = normal approximation for the likelihood in RUVB.</li>
 <li>m = MAD variance inflation.</li>
 <li>c = control-gene calibrated.</li>
 <li>l = Limma-adjusted.</li>
@@ -356,7 +357,7 @@ shared across the workflowr files. -->
 <li>RUV3o, RUV3c, RUV3m,</li>
 <li>RUV3la, RUV3lac, RUV3lam,</li>
 <li>RUV3lb, RUV3lbc, RUV3lbm,</li>
-<li>RUVB, RUVBn</li>
+<li>RUVB, RUVBn, RUVnn</li>
 <li>RUVBnl</li>
 </ul>
 <p>It turns out that RUVBnl always has the highest (mean/median) AUC, particularly when there are only 10 control genes (as opposed to 100). The hard part will then be making a plot appropriate for the paper.</p>
@@ -385,8 +386,8 @@ aucdat &lt;- read_csv(file = &quot;../../reproduce_ruv3/Output/sims_out/auc_mat2
 right_vals &lt;- str_replace(str_extract(names(aucdat)[-(1:5)], &quot;_.+$&quot;), &quot;_&quot;, &quot;&quot;)
 name_vec &lt;- c(&quot;Seed&quot;, &quot;Pi0&quot;, &quot;SampleSize&quot;, &quot;NControls&quot;, &quot;Poisthin&quot;,
               paste0(left_vals, right_vals))
-name_vec[(length(name_vec) - 2):length(name_vec)] &lt;- 
-  paste0(&quot;RUVB&quot;, stringr::str_replace(string = names(aucdat)[(length(name_vec) - 2):length(name_vec)],
+name_vec[(length(name_vec) - 3):length(name_vec)] &lt;- 
+  paste0(&quot;RUVB&quot;, stringr::str_replace(string = names(aucdat)[(length(name_vec) - 3):length(name_vec)],
                                       pattern = &quot;(ruvb)(.*+)&quot;, replace = &quot;\\2&quot;))
 names(aucdat) &lt;- name_vec
 
@@ -405,12 +406,11 @@ p &lt;- ggplot(data = longdat, mapping = aes(y = AUC, x = Method)) +
   facet_grid(Pi0 + NControls ~ SampleSize) +
   geom_hline(yintercept = 0, lty = 2) +
   xlab(&quot;Method&quot;) + ylab(&quot;Difference in AUC&quot;) +
-  ylim(-0.2, max(longdat$AUC)) +
+  #ylim(-0.2, max(longdat$AUC)) +
   theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
   theme(strip.background = element_rect(fill=&quot;white&quot;)) +
   ggtitle(&quot;Difference in AUC from RUVBnl&quot;)
 print(p)</code></pre>
-<pre><code>## Warning: Removed 360 rows containing non-finite values (stat_boxplot).</code></pre>
 <p><img src="ruvb_paper_plots_files/figure-html/unnamed-chunk-1-1.png" width="864" /></p>
 <p>The “non-finite” values just results because I put a minimum value of -0.2 on the y-limits.</p>
 <p>I can simplify the above plot by just showing the median.</p>

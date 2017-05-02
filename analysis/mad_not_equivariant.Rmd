@@ -1,0 +1,18 @@
+---
+title: "square root of MAD of square is not MAD"
+author: "David Gerard"
+date: "May 2, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+The mad is not invariant.
+
+```{r}
+temp <- rnorm(100)
+mad(temp, center = 0)
+sqrt(mad(temp ^ 2, center = 0))
+```

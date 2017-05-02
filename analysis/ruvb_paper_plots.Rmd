@@ -29,7 +29,8 @@ Here, I explore six mean methods:
 I estimate the variances with the mean methods in different combinations. The key for this is:
 
 * o = Original.
-* n = Normal or $t$ approximation for the likelihood in RUVB.
+* n = $t$ approximation for the likelihood in RUVB.
+* nn = normal approximation for the likelihood in RUVB.
 * m = MAD variance inflation.
 * c = control-gene calibrated.
 * l = Limma-adjusted.
@@ -55,7 +56,7 @@ The "c" and "m" variants of methods theoretically must have the same AUC as the 
 * RUV3o, RUV3c, RUV3m,
 * RUV3la, RUV3lac, RUV3lam,
 * RUV3lb, RUV3lbc, RUV3lbm,
-* RUVB, RUVBn
+* RUVB, RUVBn, RUVnn
 * RUVBnl
 
 It turns out that RUVBnl always has the highest (mean/median) AUC, particularly when there are only 10 control genes (as opposed to 100). The hard part will then be making a plot appropriate for the paper.
@@ -68,8 +69,8 @@ left_vals <- toupper(str_replace(str_extract(names(aucdat)[-(1:5)], "^.+_"), "_"
 right_vals <- str_replace(str_extract(names(aucdat)[-(1:5)], "_.+$"), "_", "")
 name_vec <- c("Seed", "Pi0", "SampleSize", "NControls", "Poisthin",
               paste0(left_vals, right_vals))
-name_vec[(length(name_vec) - 2):length(name_vec)] <- 
-  paste0("RUVB", stringr::str_replace(string = names(aucdat)[(length(name_vec) - 2):length(name_vec)],
+name_vec[(length(name_vec) - 3):length(name_vec)] <- 
+  paste0("RUVB", stringr::str_replace(string = names(aucdat)[(length(name_vec) - 3):length(name_vec)],
                                       pattern = "(ruvb)(.*+)", replace = "\\2"))
 names(aucdat) <- name_vec
 
@@ -88,7 +89,7 @@ p <- ggplot(data = longdat, mapping = aes(y = AUC, x = Method)) +
   facet_grid(Pi0 + NControls ~ SampleSize) +
   geom_hline(yintercept = 0, lty = 2) +
   xlab("Method") + ylab("Difference in AUC") +
-  ylim(-0.2, max(longdat$AUC)) +
+  #ylim(-0.2, max(longdat$AUC)) +
   theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
   theme(strip.background = element_rect(fill="white")) +
   ggtitle("Difference in AUC from RUVBnl")
