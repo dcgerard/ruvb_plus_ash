@@ -1,0 +1,120 @@
+---
+title: "GTEx Analysis RUVB"
+author: "David Gerard"
+date: "May 2, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Abstract
+Here, I try to make good plots for the real GTEx data analysis.
+
+# Analysis
+
+I am just going to look at the top methods according to the simulations in terms of AUC.
+
+There isn't that much to distinguish between the different methods here.
+
+```{r}
+library(tidyverse)
+library(stringr)
+source("../../reproduce_ruv3/Code/nc_adjustment_methods.R")
+
+proc_wrapper <- function(predictor, response) {
+    pROC::roc(predictor = predictor, response = response)$auc
+}
+
+topk <- function(predictor, response, num_look = 100) {
+    sum(response[order(predictor, decreasing = TRUE)[1:num_look]])
+}
+
+top_sum <- function(predictor, response, num_look = 100) {
+  cumsum(response[order(predictor, decreasing = TRUE)[1:num_look]])
+}
+
+tissue_vec <- c("adiposetissue", "bladder", "bloodvessel", "breast",
+                "colon", "kidney", "lung", "nerve", "pancreas",
+                "skin", "spleen", "adrenalgland", "blood", "brain",
+                "esophagus", "heart", "liver", "muscle", "pituitary",
+                "salivarygland", "smallintestine", "stomach", "thyroid")
+num_sv_seq <- readRDS("../../reproduce_ruv3/Output/ruvbout/num_sv.Rds")
+num_look_seq <- c(100, 300, 500)
+
+topk_array <- array(NA, dim = c(length(tissue_vec), 4, length(num_look_seq)))
+nseq <- rep(NA, length = length(tissue_vec))
+
+dimnames(topk_array) <-  list(tissue = tissue_vec, 
+                              method = c("RUV2", "RUV3", "CATE", "RUVB"),
+                              num_look = num_look_seq)
+
+for(tissue_index in 1:length(tissue_vec)) {
+    current_tissue <- tissue_vec[tissue_index]
+    num_sv <- num_sv_seq[tissue_index]
+
+    dat <- readRDS(paste0("../../reproduce_ruv3/Output/cleaned_gtex_data/", current_tissue, ".Rds"))
+    onsex <- dat$chrom == "X" | dat$chrom == "Y"
+    onsex[is.na(onsex)] <- FALSE
+    dat$ctl[onsex] <- FALSE
+    nseq[tissue_index] <- ncol(dat$Y)
+
+    cat(tissue_index, "\n")
+
+
+    ruvbout  <- readRDS(paste0("../../reproduce_ruv3/Output/ruvbout/ruvbout_", current_tissue, ".Rds"))
+    RUVBnl <- limma_adjust(obj = list(betahat = ruvbout$means, sebetahat = ruvbout$sd,
+                                      df = nrow(dat$X) - ncol(dat$X) - num_sv))
+    
+    CATEdl <- limma_adjust(cate_simp_nc_correction(Y = t(dat$Y), X = dat$X, num_sv = num_sv,
+                                                   control_genes = dat$ctl))
+    RUV2l  <- limma_adjust(ruv2_simp(Y = t(dat$Y), X = dat$X, num_sv = num_sv,
+                                     control_genes = dat$ctl))
+    RUV3lb <- ruv3_limma_pre(Y = t(dat$Y), X = dat$X, num_sv = num_sv, control_genes = dat$ctl)
+
+    tdat <- data_frame(RUV2 = abs(RUV2l$betahat / RUV2l$sebetahat)[!dat$ctl],
+                       RUV3 = abs(RUV3lb$betahat / RUV3lb$sebetahat)[!dat$ctl],
+                       CATE = abs(CATEdl$betahat / CATEdl$sebetahat)[!dat$ctl],
+                       RUVB = abs(RUVBnl$betahat / RUVBnl$sebetahat)[!dat$ctl])
+
+    ## auc_out <- apply(pdat, 2, proc_wrapper, response = onsex[!dat$ctl])
+    for(num_look_index in 1:length(num_look_seq)) {
+        topk_out <- apply(tdat, 2, topk, response = onsex[!dat$ctl],
+                          num_look = num_look_seq[num_look_index])
+        topk_array[tissue_index, , num_look_index] <- topk_out
+    }
+}
+saveRDS(topk_array, file = "../output/topk_array.RDS")
+```
+
+
+```{r}
+summat <- data_frame(RUV2 = top_sum(predictor = tdat$RUV2, response = onsex[!dat$ctl], num_look = 100),
+                     RUV3 = top_sum(predictor = tdat$RUV3, response = onsex[!dat$ctl], num_look = 100),
+                     CATE = top_sum(predictor = tdat$CATE, response = onsex[!dat$ctl], num_look = 100),
+                     RUVB = top_sum(predictor = tdat$RUVB, response = onsex[!dat$ctl], num_look = 100))
+summat$index <- 1:nrow(summat)
+    
+longdat <- gather(summat, key = "Method", value = "Onsex", 1:4)
+  
+ggplot(data = longdat, mapping = aes(x = index, y = Onsex, group = Method, color = Method)) +
+  geom_line()
+
+qdat <- as_data_frame(apply(apply(2 * pnorm(q = -as.matrix(tdat)), 2, p.adjust, method = "BH"), 2, sort))
+
+qdat$index <- 1:nrow(qdat)
+longdat <- gather(qdat, key = "Method", value = "qvalue", 1:4)
+pl <- ggplot(data = longdat, mapping = aes(x = index, y = qvalue, group = Method, color = Method)) +
+  geom_line()
+print(pl)
+```
+
+```{r}
+topk_array <- readRDS("../output/topk_array.RDS")
+topk_array
+```
+
+```{r}
+sessionInfo()
+```
