@@ -11,7 +11,7 @@
 
 <meta name="author" content="David Gerard" />
 
-<meta name="date" content="2017-04-28" />
+<meta name="date" content="2017-05-04" />
 
 <title>Coverage Plot in RUVB Paper</title>
 
@@ -304,7 +304,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">Coverage Plot in RUVB Paper</h1>
 <h4 class="author"><em>David Gerard</em></h4>
-<h4 class="date"><em>2017-04-28</em></h4>
+<h4 class="date"><em>2017-05-04</em></h4>
 
 </div>
 
@@ -397,10 +397,8 @@ bestdat &lt;- meddat %&gt;% group_by(Pi0, SampleSize, NControls) %&gt;%
   summarise(Best = get_best(Method, Diff))
 table(bestdat$Best)</code></pre>
 <pre><code>## 
-##   CATEd  CATEdl  CATEdm   CATEo   RUV2c   RUV2l   RUV2m  RUV3la RUV3lac 
-##       2       5       1       1       1       2       1       1       1 
-##  RUV4lm    RUVB  RUVBnn 
-##       1       6       2</code></pre>
+##   CATEd  CATEdl CATElbm   CATEo   RUV2l  RUV3la RUV3lac    RUVB  RUVBnn 
+##       3       5       1       1       3       1       2       6       2</code></pre>
 <p>Get the median coverage rankings within each scenario.</p>
 <pre class="r"><code>get_ranks &lt;- function(Diff) {
   rank(abs(Diff))
@@ -483,9 +481,9 @@ msedat &lt;- longdat %&gt;% group_by(Pi0, SampleSize, NControls, Method) %&gt;%
   ungroup()
 temp &lt;- msedat %&gt;% group_by(Method) %&gt;% summarize(Mean = mean(MSE))
 temp$Method[order(temp$Mean)]</code></pre>
-<pre><code>##  [1] &quot;RUV2m&quot;   &quot;RUV3m&quot;   &quot;CATEdm&quot;  &quot;RUV4m&quot;   &quot;CATEm&quot;   &quot;RUVBnl&quot;  &quot;OLSm&quot;   
-##  [8] &quot;RUV2lm&quot;  &quot;RUV3lam&quot; &quot;RUV4lm&quot;  &quot;RUV3lbm&quot; &quot;RUVBn&quot;   &quot;CATElam&quot; &quot;CATElbm&quot;
-## [15] &quot;RUV2o&quot;   &quot;CATEdlm&quot; &quot;OLSlm&quot;   &quot;RUV3lb&quot;  &quot;RUV3o&quot;   &quot;OLSc&quot;    &quot;CATEd&quot;  
+<pre><code>##  [1] &quot;CATEm&quot;   &quot;RUV4m&quot;   &quot;CATElam&quot; &quot;RUV2m&quot;   &quot;RUV4lm&quot;  &quot;RUV3m&quot;   &quot;CATEdlm&quot;
+##  [8] &quot;RUV2lm&quot;  &quot;RUV3lam&quot; &quot;RUVBnl&quot;  &quot;CATEdm&quot;  &quot;RUVBn&quot;   &quot;CATElbm&quot; &quot;OLSlm&quot;  
+## [15] &quot;OLSm&quot;    &quot;RUV2o&quot;   &quot;RUV3lbm&quot; &quot;RUV3lb&quot;  &quot;RUV3o&quot;   &quot;OLSc&quot;    &quot;CATEd&quot;  
 ## [22] &quot;RUV2l&quot;   &quot;RUVBnn&quot;  &quot;RUVB&quot;    &quot;OLSlc&quot;   &quot;RUV3la&quot;  &quot;CATEdl&quot;  &quot;OLSo&quot;   
 ## [29] &quot;RUV3c&quot;   &quot;RUV2c&quot;   &quot;OLSl&quot;    &quot;RUV3lbc&quot; &quot;CATElb&quot;  &quot;CATEo&quot;   &quot;RUV3lac&quot;
 ## [36] &quot;CATEla&quot;  &quot;RUV4o&quot;   &quot;RUV2lc&quot;  &quot;RUV4l&quot;   &quot;CATEdc&quot;  &quot;CATEdlc&quot; &quot;RUV4c&quot;  

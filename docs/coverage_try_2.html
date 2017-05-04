@@ -382,29 +382,29 @@ sumdat &lt;- longdat %&gt;% group_by(Pi0, SampleSize, NControls, Method) %&gt;%
 <pre class="r"><code>meanlossdat &lt;- sumdat %&gt;% group_by(Method) %&gt;%
   summarise(meanLoss = mean(Loss), meanLess = mean(Less), meanGreater = mean(Greater))
 meanlossdat$Method[order(meanlossdat$meanLoss, decreasing = FALSE)]</code></pre>
-<pre><code>##  [1] &quot;RUVB&quot;    &quot;RUVBnn&quot;  &quot;RUV2o&quot;   &quot;RUV3o&quot;   &quot;RUV2m&quot;   &quot;RUV2l&quot;   &quot;RUV3la&quot; 
-##  [8] &quot;RUV3m&quot;   &quot;RUV4m&quot;   &quot;CATEm&quot;   &quot;CATEo&quot;   &quot;CATEd&quot;   &quot;CATEdl&quot;  &quot;RUV2lm&quot; 
-## [15] &quot;RUV3lam&quot; &quot;CATEdlm&quot; &quot;CATElam&quot; &quot;RUV4lm&quot;  &quot;CATEla&quot;  &quot;RUV4o&quot;   &quot;RUVBnl&quot; 
-## [22] &quot;CATEdm&quot;  &quot;RUV2lc&quot;  &quot;CATEdlc&quot; &quot;RUV4l&quot;   &quot;OLSlc&quot;   &quot;CATElac&quot; &quot;RUV4lc&quot; 
-## [29] &quot;RUV3lb&quot;  &quot;CATElb&quot;  &quot;OLSm&quot;    &quot;OLSlm&quot;   &quot;CATEc&quot;   &quot;RUV3lbm&quot; &quot;CATElbm&quot;
-## [36] &quot;CATEdc&quot;  &quot;RUV4c&quot;   &quot;RUV2c&quot;   &quot;RUV3lac&quot; &quot;RUVBn&quot;   &quot;OLSc&quot;    &quot;OLSl&quot;   
-## [43] &quot;CATElbc&quot; &quot;OLSo&quot;    &quot;RUV3c&quot;   &quot;RUV3lbc&quot;</code></pre>
+<pre><code>##  [1] &quot;RUVB&quot;    &quot;RUVBnn&quot;  &quot;RUV2o&quot;   &quot;RUV3o&quot;   &quot;RUV2l&quot;   &quot;RUV3la&quot;  &quot;CATEo&quot;  
+##  [8] &quot;CATEd&quot;   &quot;CATEdl&quot;  &quot;CATEla&quot;  &quot;RUV4o&quot;   &quot;RUVBnl&quot;  &quot;RUV2lc&quot;  &quot;CATEdlc&quot;
+## [15] &quot;RUV4l&quot;   &quot;OLSlc&quot;   &quot;CATElac&quot; &quot;RUV4lc&quot;  &quot;RUV3lb&quot;  &quot;CATElb&quot;  &quot;CATElam&quot;
+## [22] &quot;CATEm&quot;   &quot;CATEc&quot;   &quot;CATEdlm&quot; &quot;CATEdc&quot;  &quot;RUV4m&quot;   &quot;RUV4c&quot;   &quot;RUV4lm&quot; 
+## [29] &quot;RUV2c&quot;   &quot;RUV3lac&quot; &quot;RUVBn&quot;   &quot;RUV2lm&quot;  &quot;OLSc&quot;    &quot;RUV3lam&quot; &quot;RUV2m&quot;  
+## [36] &quot;OLSl&quot;    &quot;CATElbc&quot; &quot;RUV3m&quot;   &quot;OLSo&quot;    &quot;RUV3c&quot;   &quot;CATEdm&quot;  &quot;OLSlm&quot;  
+## [43] &quot;CATElbm&quot; &quot;RUV3lbc&quot; &quot;OLSm&quot;    &quot;RUV3lbm&quot;</code></pre>
 <pre class="r"><code>meanlossdat$Method[order(meanlossdat$meanLess, decreasing = FALSE)]</code></pre>
-<pre><code>##  [1] &quot;RUV3lbm&quot; &quot;CATEdm&quot;  &quot;RUVBn&quot;   &quot;RUV3m&quot;   &quot;RUV2m&quot;   &quot;OLSm&quot;    &quot;RUVBnl&quot; 
-##  [8] &quot;OLSc&quot;    &quot;CATElbm&quot; &quot;RUV4m&quot;   &quot;CATEm&quot;   &quot;RUV3lb&quot;  &quot;RUV3lbc&quot; &quot;RUV3lam&quot;
-## [15] &quot;RUV2lm&quot;  &quot;RUV3c&quot;   &quot;OLSlc&quot;   &quot;RUV2c&quot;   &quot;RUV2o&quot;   &quot;RUV4lm&quot;  &quot;OLSlm&quot;  
-## [22] &quot;CATElam&quot; &quot;CATEdlm&quot; &quot;RUV2l&quot;   &quot;CATEd&quot;   &quot;RUV3o&quot;   &quot;RUV3lac&quot; &quot;OLSo&quot;   
+<pre><code>##  [1] &quot;RUV2m&quot;   &quot;RUV3lbm&quot; &quot;RUV3m&quot;   &quot;CATEdm&quot;  &quot;CATEm&quot;   &quot;CATElbm&quot; &quot;OLSm&quot;   
+##  [8] &quot;RUV4m&quot;   &quot;CATElam&quot; &quot;RUV4lm&quot;  &quot;RUV3lam&quot; &quot;RUV2lm&quot;  &quot;OLSlm&quot;   &quot;CATEdlm&quot;
+## [15] &quot;RUVBn&quot;   &quot;RUVBnl&quot;  &quot;OLSc&quot;    &quot;RUV3lb&quot;  &quot;RUV3lbc&quot; &quot;RUV3c&quot;   &quot;OLSlc&quot;  
+## [22] &quot;RUV2c&quot;   &quot;RUV2o&quot;   &quot;RUV2l&quot;   &quot;CATEd&quot;   &quot;RUV3o&quot;   &quot;RUV3lac&quot; &quot;OLSo&quot;   
 ## [29] &quot;OLSl&quot;    &quot;RUVB&quot;    &quot;RUVBnn&quot;  &quot;RUV3la&quot;  &quot;CATEdl&quot;  &quot;RUV2lc&quot;  &quot;CATElb&quot; 
 ## [36] &quot;CATEdc&quot;  &quot;RUV4c&quot;   &quot;CATElbc&quot; &quot;CATEc&quot;   &quot;CATEo&quot;   &quot;CATEdlc&quot; &quot;RUV4lc&quot; 
 ## [43] &quot;CATElac&quot; &quot;CATEla&quot;  &quot;RUV4o&quot;   &quot;RUV4l&quot;</code></pre>
 <pre class="r"><code>meanlossdat$Method[order(meanlossdat$meanGreater, decreasing = FALSE)]</code></pre>
 <pre><code>##  [1] &quot;RUV4o&quot;   &quot;RUV4l&quot;   &quot;CATEla&quot;  &quot;CATEo&quot;   &quot;CATEdlc&quot; &quot;CATElac&quot; &quot;RUV4lc&quot; 
 ##  [8] &quot;RUVB&quot;    &quot;RUVBnn&quot;  &quot;CATEdl&quot;  &quot;RUV3la&quot;  &quot;RUV3o&quot;   &quot;RUV2lc&quot;  &quot;RUV2o&quot;  
-## [15] &quot;RUV2l&quot;   &quot;CATEc&quot;   &quot;CATEd&quot;   &quot;CATElb&quot;  &quot;CATEdlm&quot; &quot;RUV4c&quot;   &quot;CATElam&quot;
-## [22] &quot;RUV4m&quot;   &quot;CATEm&quot;   &quot;CATEdc&quot;  &quot;RUV2lm&quot;  &quot;RUV4lm&quot;  &quot;RUV2m&quot;   &quot;RUV3lam&quot;
-## [29] &quot;RUV3m&quot;   &quot;CATElbc&quot; &quot;RUVBnl&quot;  &quot;OLSlc&quot;   &quot;CATEdm&quot;  &quot;OLSlm&quot;   &quot;RUV3lb&quot; 
-## [36] &quot;RUV3lac&quot; &quot;OLSl&quot;    &quot;RUV2c&quot;   &quot;OLSm&quot;    &quot;CATElbm&quot; &quot;RUV3lbm&quot; &quot;OLSo&quot;   
-## [43] &quot;OLSc&quot;    &quot;RUVBn&quot;   &quot;RUV3c&quot;   &quot;RUV3lbc&quot;</code></pre>
+## [15] &quot;RUV2l&quot;   &quot;CATEc&quot;   &quot;CATEd&quot;   &quot;CATElb&quot;  &quot;RUV4c&quot;   &quot;CATEdc&quot;  &quot;CATElbc&quot;
+## [22] &quot;RUVBnl&quot;  &quot;OLSlc&quot;   &quot;RUV3lb&quot;  &quot;RUV3lac&quot; &quot;OLSl&quot;    &quot;RUV2c&quot;   &quot;OLSo&quot;   
+## [29] &quot;CATElam&quot; &quot;OLSc&quot;    &quot;CATEm&quot;   &quot;CATEdlm&quot; &quot;RUVBn&quot;   &quot;RUV4m&quot;   &quot;RUV4lm&quot; 
+## [36] &quot;RUV2lm&quot;  &quot;RUV3lam&quot; &quot;RUV3c&quot;   &quot;RUV2m&quot;   &quot;RUV3m&quot;   &quot;OLSlm&quot;   &quot;CATEdm&quot; 
+## [43] &quot;RUV3lbc&quot; &quot;CATElbm&quot; &quot;OLSm&quot;    &quot;RUV3lbm&quot;</code></pre>
 <p>Try to combine the Less and Greater plots</p>
 <pre class="r"><code>combdat &lt;- select(sumdat, Pi0, SampleSize, NControls, Method, Less, Greater) %&gt;%
   gather(key = &quot;Loss&quot;, value = &quot;Proportion&quot;, Less, Greater)
