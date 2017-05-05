@@ -1,0 +1,63 @@
+---
+title: "Analyze BG Output"
+author: "David Gerard"
+date: "May 5, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Abstract
+
+Analyze the output from the fits of the GB data.
+
+# Analysis
+
+```{r}
+library(tidyverse)
+
+num_look <- 500
+
+dout <- readRDS("../output/gbout/gender.sm.RDS")
+enrlong <- gather(dout$enrdat, key = "Method", value = "Num", RUV2:RUVB) %>%
+    filter(Index <= num_look)
+ggplot(data = enrlong, mapping = aes(x = Index, y = Num, color = Method, lty = Method)) +
+  geom_line() +
+  theme_bw() +
+  ylab("Number on Sex Chromosome") +
+  xlab("Number of Top Genes")
+
+dout <- readRDS("../output/gbout/gender.bgnmsm.RDS")
+enrlong <- gather(dout$enrdat, key = "Method", value = "Num", RUV2:RUVB) %>%
+    filter(Index <= num_look)
+ggplot(data = enrlong, mapping = aes(x = Index, y = Num, color = Method, lty = Method)) +
+  geom_line() +
+  theme_bw() +
+  ylab("Number on Sex Chromosome") +
+  xlab("Number of Top Genes")
+
+dout <- readRDS("../output/gbout/gender.bgnmsmls.RDS")
+enrlong <- gather(dout$enrdat, key = "Method", value = "Num", RUV2:RUVB) %>%
+    filter(Index <= num_look)
+ggplot(data = enrlong, mapping = aes(x = Index, y = Num, color = Method, lty = Method)) +
+  geom_line() +
+  theme_bw() +
+  ylab("Number on Sex Chromosome") +
+  xlab("Number of Top Genes")
+
+dout <- readRDS("../output/gbout/alzheimers.sm")
+enrlong <- gather(dout$enrdat, key = "Method", value = "Num", RUV2:RUVB) %>%
+    filter(Index <= num_look)
+ggplot(data = enrlong, mapping = aes(x = Index, y = Num, color = Method, lty = Method)) +
+  geom_line() +
+  theme_bw() +
+  ylab("Number on Sex Chromosome") +
+  xlab("Number of Top Genes")
+```
+
+
+```{r}
+sessionInfo()
+```
