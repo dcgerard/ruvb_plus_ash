@@ -1,0 +1,171 @@
+---
+title: "GB Data"
+author: "David Gerard"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Abstract
+
+Try out data from Gagnon-Bartsch etal
+
+# Read in Data
+
+```{r}
+set.seed(5)
+library(tidyverse)
+source("../../reproduce_ruv3/Code/nc_adjustment_methods.R")
+load("../data/gb/ruv.data.gender.sm/data/gender.sm.rda")
+str(gender.sm)
+Y <- gender.sm$Y
+X <- model.matrix(~c(gender.sm$X))
+colnames(X) <- c("Intercept", "Gender")
+ctl <- gender.sm$spikectl
+names(gender.sm)
+onsex <- gender.sm$xchrom | gender.sm$ychrom + gender.sm$xychrom
+```
+
+# Analysis
+
+Function to analyze data:
+
+```{r}
+analyze_dat <- function(Y, X, ctl) {
+  num_sv <- sva::num.sv(dat = t(Y), mod = X)
+  ruvbout  <- ruvb_bfa_gs_linked_se(Y = Y, X = X, control_genes = ctl, num_sv = num_sv)
+  RUVBnl <- limma_adjust(obj = list(betahat = ruvbout$betahat, sebetahat = ruvbout$sebetahat,
+                                    df = ruvbout$df))
+
+  CATEdl <- limma_adjust(cate_simp_nc_correction(Y = Y, X = X, num_sv = num_sv,
+                                                 control_genes = ctl))
+  RUV2l  <- limma_adjust(ruv2_simp(Y = Y, X = X, num_sv = num_sv,
+                                   control_genes = ctl))
+  RUV3lb <- ruv3_limma_pre(Y = Y, X = X, num_sv = num_sv, control_genes = ctl)
+
+  tdat <- data_frame(RUV2 = c(RUV2l$betahat / RUV2l$sebetahat),
+                     RUV3 = c(RUV3lb$betahat / RUV3lb$sebetahat),
+                     CATE = c(CATEdl$betahat / CATEdl$sebetahat),
+                     RUVB = c(RUVBnl$betahat / RUVBnl$sebetahat),
+                     onsex = onsex)
+
+  enrdat <- data_frame(Index = 1:nrow(tdat),
+                       RUV2 = cumsum(tdat$onsex[order(abs(tdat$RUV2), decreasing = TRUE)]),
+                       RUV3 = cumsum(tdat$onsex[order(abs(tdat$RUV3), decreasing = TRUE)]),
+                       CATE = cumsum(tdat$onsex[order(abs(tdat$CATE), decreasing = TRUE)]),
+                       RUVB = cumsum(tdat$onsex[order(abs(tdat$RUVB), decreasing = TRUE)]))
+
+
+  return(list(enrdat = enrdat, tdat = tdat))
+}
+```
+
+Fit methods
+
+```{r}
+dout <- analyze_dat(Y = Y, X = X, ctl = ctl)
+saveRDS(dout, file = "../output/gbout/gender.sm_spike.RDS")
+enrlong <- gather(dout$enrdat, key = "Method", value = "Num", RUV2:RUVB) %>%
+    filter(Index <= 200)
+ggplot(data = enrlong, mapping = aes(x = Index, y = Num, color = Method, lty = Method)) +
+  geom_line() +
+  theme_bw() +
+  ylab("Number on Sex Chromosome") +
+  xlab("Number of Top Genes") +
+  ggtitle("gender.sm")
+```
+
+
+# Repeat for other methods
+
+## gender.bgnmsm
+
+```{r}
+load("../data/gb/ruv.data.gender.bgnmsm/data/gender.bgnmsm.rda")
+Y <- gender.bgnmsm$Y
+X <- model.matrix(~c(gender.bgnmsm$X))
+colnames(X) <- c("Intercept", "Gender")
+ctl <- gender.bgnmsm$spikectl
+onsex <- gender.bgnmsm$xchrom | gender.bgnmsm$ychrom + gender.bgnmsm$xychrom
+dout <- analyze_dat(Y = Y, X = X, ctl = ctl)
+saveRDS(dout, file = "../output/gbout/gender.bgnmsm_spike.RDS")
+enrlong <- gather(dout$enrdat, key = "Method", value = "Num", RUV2:RUVB) %>%
+    filter(Index <= 200)
+ggplot(data = enrlong, mapping = aes(x = Index, y = Num, color = Method, lty = Method)) +
+  geom_line() +
+  theme_bw() +
+  ylab("Number on Sex Chromosome") +
+  xlab("Number of Top Genes") +
+  ggtitle("gender.bgnmsm")
+```
+
+## gender.bgnmsmls
+
+```{r}
+load("../data/gb/ruv.data.gender.bgnmsmls/data/gender.bgnmsmls.rda")
+Y <- gender.bgnmsmls$Y
+X <- model.matrix(~c(gender.bgnmsmls$X))
+colnames(X) <- c("Intercept", "Gender")
+ctl <- gender.bgnmsmls$spikectl
+onsex <- gender.bgnmsmls$xchrom | gender.bgnmsmls$ychrom + gender.bgnmsmls$xychrom
+dout <- analyze_dat(Y = Y, X = X, ctl = ctl)
+saveRDS(dout, file = "../output/gbout/gender.bgnmsmls_spike.RDS")
+enrlong <- gather(dout$enrdat, key = "Method", value = "Num", RUV2:RUVB) %>%
+    filter(Index <= 200)
+ggplot(data = enrlong, mapping = aes(x = Index, y = Num, color = Method, lty = Method)) +
+  geom_line() +
+  theme_bw() +
+  ylab("Number on Sex Chromosome") +
+  xlab("Number of Top Genes") +
+  ggtitle("gender.bgnmsmls")
+```
+
+## alzheimers.sm
+
+```{r}
+load("../data/gb/ruv.data.alzheimers.sm/data/alzheimers.sm.rda")
+Y <- alzheimers.sm$Y
+X <- model.matrix(~c(alzheimers.sm$X))
+colnames(X) <- c("Intercept", "Gender")
+ctl <- alzheimers.sm$spikectl
+onsex <- alzheimers.sm$xchrom | alzheimers.sm$ychrom + alzheimers.sm$xychrom
+dout <- analyze_dat(Y = Y, X = X, ctl = ctl)
+saveRDS(dout, file = "../output/gbout/alzheimers.sm_spike.RDS")
+enrlong <- gather(dout$enrdat, key = "Method", value = "Num", RUV2:RUVB) %>%
+    filter(Index <= 200)
+ggplot(data = enrlong, mapping = aes(x = Index, y = Num, color = Method, lty = Method)) +
+  geom_line() +
+  theme_bw() +
+  ylab("Number on Sex Chromosome") +
+  xlab("Number of Top Genes") +
+  ggtitle("alzheimers.sm")
+```
+
+
+## alzheimers.bgnmsm
+
+```{r}
+load("../data/gb/ruv.data.alzheimers.bgnmsm/data/alzheimers.bgnmsm.rda")
+Y <- alzheimers.bgnmsm$Y
+X <- model.matrix(~c(alzheimers.bgnmsm$X))
+colnames(X) <- c("Intercept", "Gender")
+ctl <- alzheimers.bgnmsm$spikectl
+onsex <- alzheimers.bgnmsm$xchrom | alzheimers.bgnmsm$ychrom + alzheimers.bgnmsm$xychrom
+dout <- analyze_dat(Y = Y, X = X, ctl = ctl)
+saveRDS(dout, file = "../output/gbout/alzheimers.bgnmsm_spike.RDS")
+enrlong <- gather(dout$enrdat, key = "Method", value = "Num", RUV2:RUVB) %>%
+    filter(Index <= 200)
+ggplot(data = enrlong, mapping = aes(x = Index, y = Num, color = Method, lty = Method)) +
+  geom_line() +
+  theme_bw() +
+  ylab("Number on Sex Chromosome") +
+  xlab("Number of Top Genes") +
+  ggtitle("alzheimers.bgnmsm")
+```
+
+```{r}
+sessionInfo()
+```
