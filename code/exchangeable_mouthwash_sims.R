@@ -97,10 +97,10 @@ one_rep <- function(new_params, current_params) {
 
   ash_list <- lapply(method_list, FUN = do_ash)
   ash_list$mouthwash_norm <- mouthwash(Y = Y, X = X, num_sv = num_sv,
-                                       likelihood = "normal", alpha = 1)
+                                       likelihood = "normal", alpha = 1, scale_var = FALSE)
   ash_list$mouthwash_t <- mouthwash(Y = Y, X = X, num_sv = num_sv,
-                                    likelihood = "t", alpha = 1)
-  ash_list$backwash    <- backwash(Y = Y, X = X, num_sv = num_sv, alpha = 1)
+                                    likelihood = "t", alpha = 1, scale_var = FALSE)
+  ash_list$backwash    <- backwash(Y = Y, X = X, num_sv = num_sv, alpha = 1, scale_var = FALSE)
 
 
   qvalue_list <- lapply(plist, FUN = do_qvalue)
