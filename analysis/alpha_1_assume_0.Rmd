@@ -1,5 +1,5 @@
 ---
-title: "Analyze Alpha = 1"
+title: "Simulate Alpha = 1 but Fit Assuming Alpha = 0"
 author: "David Gerard"
 date: "May 17, 2017"
 output: html_document
@@ -9,20 +9,19 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# EDIT
-I figured out that BACKWASH had a bug where the variance inflation parameter was still being once (though not more than once) even though `scale_var = FALSE`. This indicates that what's important is the variance scaling, not that we fit BACKWASH assuming `\alpha = 0`.
-
 # Abstract
 
-I simulated the effects under an exchangeable $t$-statistic model. Here, I look at the early sims.
+I simulated the effects under an exchangeable $t$-statistic model ($\alpha = 1$) but I run everything assuming $\alpha = 0$.
 
 # Analysis
 
-I ran the simulations [here](https://github.com/dcgerard/ruvb_plus_ash/blob/master/code/exchangeable_mouthwash_sims.R) with methods coded up [here](https://github.com/dcgerard/ruvb_plus_ash/blob/master/code/non_nc_methods.R) and [here](https://github.com/dcgerard/ruvb_sims/blob/nc_var/Code/nc_adjustment_methods.R).
+I ran the simulations [here](https://github.com/dcgerard/ruvb_plus_ash/blob/master/code/exchangeable_mouthwash_sims_asifalpha0.R) with methods coded up [here](https://github.com/dcgerard/ruvb_plus_ash/blob/master/code/non_nc_methods.R) and [here](https://github.com/dcgerard/ruvb_sims/blob/nc_var/Code/nc_adjustment_methods.R).
+
+I am still getting pretty great behavior from MOUTHWASH and BACKWASH as long as you are scaling the variances. These are suffixed with "_sv" in the figure. 
 
 ```{r}
 library(tidyverse)
-dat <- as_data_frame(readRDS("../output/alpha_1_sims_out/sims_out.RDS"))
+dat <- as_data_frame(readRDS("../output/alpha_1_sims_out/sims_out_asifalpha0.RDS"))
 pi0dat <- select(dat, nullpi, Nsamp, ncontrols, contains("pi0_")) %>%
   gather(key = "Method", value = "Pi0hat", contains("pi0_"))
 pi0dat$Method <- stringr::str_replace(pi0dat$Method, "pi0_", "")
@@ -36,8 +35,6 @@ pl <- ggplot(data = pi0dat, mapping = aes(x = Method, y = Pi0hat)) +
   ggtitle("pi0hat")
 print(pl)
 ```
-
-Note that I haven't implemented $\alpha = 1$ for BACKWASH yet, so those are the results when I simulated $\alpha = 1$ but I fit $\alpha = 0$. BACKWASH looks the best overall. MOUTHWASH, without the scaled variances, worked poorly, as expected. Though in BACKWASH, I didn't use the scaled variances and it still worked really well with $\alpha = 0$. This is weird.
 
 MOUTHWASH and BACKWASH have the best AUC, as usual.
 

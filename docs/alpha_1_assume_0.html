@@ -13,7 +13,7 @@
 
 <meta name="date" content="2017-05-17" />
 
-<title>Analyze Alpha = 1</title>
+<title>Simulate Alpha = 1 but Fit Assuming Alpha = 0</title>
 
 <script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -302,24 +302,21 @@ div.tocify {
 
 
 
-<h1 class="title toc-ignore">Analyze Alpha = 1</h1>
+<h1 class="title toc-ignore">Simulate Alpha = 1 but Fit Assuming Alpha = 0</h1>
 <h4 class="author"><em>David Gerard</em></h4>
 <h4 class="date"><em>May 17, 2017</em></h4>
 
 </div>
 
 
-<div id="edit" class="section level1">
-<h1>EDIT</h1>
-<p>I figured out that BACKWASH had a bug where the variance inflation parameter was still being once (though not more than once) even though <code>scale_var = FALSE</code>. This indicates that what’s important is the variance scaling, not that we fit BACKWASH assuming <code>\alpha = 0</code>.</p>
-</div>
 <div id="abstract" class="section level1">
 <h1>Abstract</h1>
-<p>I simulated the effects under an exchangeable <span class="math inline">\(t\)</span>-statistic model. Here, I look at the early sims.</p>
+<p>I simulated the effects under an exchangeable <span class="math inline">\(t\)</span>-statistic model (<span class="math inline">\(\alpha = 1\)</span>) but I run everything assuming <span class="math inline">\(\alpha = 0\)</span>.</p>
 </div>
 <div id="analysis" class="section level1">
 <h1>Analysis</h1>
-<p>I ran the simulations <a href="https://github.com/dcgerard/ruvb_plus_ash/blob/master/code/exchangeable_mouthwash_sims.R">here</a> with methods coded up <a href="https://github.com/dcgerard/ruvb_plus_ash/blob/master/code/non_nc_methods.R">here</a> and <a href="https://github.com/dcgerard/ruvb_sims/blob/nc_var/Code/nc_adjustment_methods.R">here</a>.</p>
+<p>I ran the simulations <a href="https://github.com/dcgerard/ruvb_plus_ash/blob/master/code/exchangeable_mouthwash_sims_asifalpha0.R">here</a> with methods coded up <a href="https://github.com/dcgerard/ruvb_plus_ash/blob/master/code/non_nc_methods.R">here</a> and <a href="https://github.com/dcgerard/ruvb_sims/blob/nc_var/Code/nc_adjustment_methods.R">here</a>.</p>
+<p>I am still getting pretty great behavior from MOUTHWASH and BACKWASH as long as you are scaling the variances. These are suffixed with “_sv&quot; in the figure.</p>
 <pre class="r"><code>library(tidyverse)</code></pre>
 <pre><code>## Loading tidyverse: ggplot2
 ## Loading tidyverse: tibble
@@ -330,7 +327,7 @@ div.tocify {
 <pre><code>## Conflicts with tidy packages ----------------------------------------------</code></pre>
 <pre><code>## filter(): dplyr, stats
 ## lag():    dplyr, stats</code></pre>
-<pre class="r"><code>dat &lt;- as_data_frame(readRDS(&quot;../output/alpha_1_sims_out/sims_out.RDS&quot;))
+<pre class="r"><code>dat &lt;- as_data_frame(readRDS(&quot;../output/alpha_1_sims_out/sims_out_asifalpha0.RDS&quot;))
 pi0dat &lt;- select(dat, nullpi, Nsamp, ncontrols, contains(&quot;pi0_&quot;)) %&gt;%
   gather(key = &quot;Method&quot;, value = &quot;Pi0hat&quot;, contains(&quot;pi0_&quot;))
 pi0dat$Method &lt;- stringr::str_replace(pi0dat$Method, &quot;pi0_&quot;, &quot;&quot;)
@@ -343,8 +340,7 @@ pl &lt;- ggplot(data = pi0dat, mapping = aes(x = Method, y = Pi0hat)) +
         strip.background = element_rect(fill = &quot;white&quot;)) +
   ggtitle(&quot;pi0hat&quot;)
 print(pl)</code></pre>
-<p><img src="alpha_1_files/figure-html/unnamed-chunk-1-1.png" width="672" /></p>
-<p>Note that I haven’t implemented <span class="math inline">\(\alpha = 1\)</span> for BACKWASH yet, so those are the results when I simulated <span class="math inline">\(\alpha = 1\)</span> but I fit <span class="math inline">\(\alpha = 0\)</span>. BACKWASH looks the best overall. MOUTHWASH, without the scaled variances, worked poorly, as expected. Though in BACKWASH, I didn’t use the scaled variances and it still worked really well with <span class="math inline">\(\alpha = 0\)</span>. This is weird.</p>
+<p><img src="alpha_1_assume_0_files/figure-html/unnamed-chunk-1-1.png" width="672" /></p>
 <p>MOUTHWASH and BACKWASH have the best AUC, as usual.</p>
 <pre class="r"><code>aucdat &lt;- select(dat, nullpi, Nsamp, ncontrols, contains(&quot;auc_&quot;)) %&gt;%
   gather(key = &quot;Method&quot;, value = &quot;auchat&quot;, contains(&quot;auc_&quot;))
@@ -357,7 +353,7 @@ pl &lt;- ggplot(data = aucdat, mapping = aes(x = Method, y = auchat)) +
         strip.background = element_rect(fill = &quot;white&quot;)) +
   ggtitle(&quot;auchat&quot;)
 print(pl)</code></pre>
-<p><img src="alpha_1_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
+<p><img src="alpha_1_assume_0_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
 <pre class="r"><code>sessionInfo()</code></pre>
 <pre><code>## R version 3.3.2 (2016-10-31)
 ## Platform: x86_64-pc-linux-gnu (64-bit)

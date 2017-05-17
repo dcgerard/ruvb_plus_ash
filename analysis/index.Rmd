@@ -33,6 +33,7 @@ output:
 
 # alpha = 1
 * [First try at alpha = 1](alpha_1.html) I ran BACKWASH as if $\alpha = 0$ (because other levels of $\alpha$ are not implemented yet) and it worked the best. I didn't use any variance inflation for MOUTHWASH or BACKWASH. I ran all ash-like methods as if $\alpha = 1$ except for BACKWASH. I ran all simulations when $\pi_0 = 0.1$ and the number of controls was 10.
+* [Simulate under alpha = 1 but fit assuming alpha = 0](alpha_1_assume_0.html). Variance-scaled versions of BACKWASH and MOUTHWASH still work pretty darn well.
 
 [rmarkdown]: http://rmarkdown.rstudio.com/rmarkdown_websites.htm
 [rstudio]: https://www.rstudio.com/products/rstudio/download/preview/

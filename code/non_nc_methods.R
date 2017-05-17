@@ -29,12 +29,7 @@ sva <- function(Y, X, num_sv) {
 }
 
 
-mouthwash <- function(Y, X, num_sv, likelihood = c("normal", "t"), alpha = 0) {
-  if (alpha == 1) {
-    scale_var <- FALSE
-  } else {
-    scale_var <- TRUE
-  }
+mouthwash <- function(Y, X, num_sv, likelihood = c("normal", "t"), alpha = 0, scale_var = FALSE) {
   likelihood <- match.arg(likelihood)
   if (likelihood == "t") {
     mixing_dist <- "sym_uniform"
@@ -51,12 +46,7 @@ mouthwash <- function(Y, X, num_sv, likelihood = c("normal", "t"), alpha = 0) {
 }
 
 
-backwash <- function(Y, X, num_sv, alpha = 0) {
-  if (alpha == 1) {
-    scale_var <- FALSE
-  } else {
-    scale_var <- TRUE
-  }
+backwash <- function(Y, X, num_sv, alpha = 0, scale_var = FALSE) {
   mout <- vicar::backwash(Y = Y, X = X, k = num_sv, scale_var = scale_var, sprop = alpha)
   return_list <- list()
   return_list$betahat <- mout$result$PosteriorMean
