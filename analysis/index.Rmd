@@ -31,5 +31,8 @@ output:
 * [I don't know if including the positive controls is worth it.](real_data_explore.html)
 * [Mixed results when running best methods on Gagnon-Bartsch datasets](gb_output_analysis.html). Here, I looked at the number of positive controls at the top genes for all 5 datasets that GB used and using either spike-in's or housekeeping genes.
 
+# alpha = 1
+* [First try at alpha = 1](alpha_1.html) I ran BACKWASH as if $\alpha = 0$ (because other levels of $\alpha$ are not implemented yet) and it worked the best. I didn't use any variance inflation for MOUTHWASH or BACKWASH. I ran all ash-like methods as if $\alpha = 1$ except for BACKWASH. I ran all simulations when $\pi_0 = 0.1$ and the number of controls was 10.
+
 [rmarkdown]: http://rmarkdown.rstudio.com/rmarkdown_websites.htm
 [rstudio]: https://www.rstudio.com/products/rstudio/download/preview/
