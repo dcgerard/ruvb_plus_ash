@@ -15,7 +15,7 @@ I simulated the effects under an exchangeable $t$-statistic model. Here, I look 
 
 # Analysis
 
-I ran the simulations [here]().
+I ran the simulations [here](https://github.com/dcgerard/ruvb_plus_ash/blob/master/code/exchangeable_mouthwash_sims.R) with methods coded up [here](https://github.com/dcgerard/ruvb_plus_ash/blob/master/code/non_nc_methods.R) and [here](https://github.com/dcgerard/ruvb_sims/blob/nc_var/Code/nc_adjustment_methods.R).
 
 ```{r}
 library(tidyverse)

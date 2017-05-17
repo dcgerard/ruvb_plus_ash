@@ -1,10 +1,3 @@
-#####
-## These are the dumb simulations MS wants me to do.
-## Simulate under exchangeable model. Fit mouthwash.
-#####
-
-
-
 one_rep <- function(new_params, current_params) {
   source("../../reproduce_ruv3/Code/nc_adjustment_methods.R")
   source("../code/non_nc_methods.R")
