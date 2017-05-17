@@ -1,0 +1,57 @@
+---
+title: "Analyze Alpha = 1"
+author: "David Gerard"
+date: "May 17, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Abstract
+
+I simulated the effects under an exchangeable $t$-statistic model. Here, I look at the early sims.
+
+# Analysis
+
+I ran the simulations [here]().
+
+```{r}
+library(tidyverse)
+dat <- as_data_frame(readRDS("../output/alpha_1_sims_out/sims_out.RDS"))
+pi0dat <- select(dat, nullpi, Nsamp, ncontrols, contains("pi0_")) %>%
+  gather(key = "Method", value = "Pi0hat", contains("pi0_"))
+pi0dat$Method <- stringr::str_replace(pi0dat$Method, "pi0_", "")
+pl <- ggplot(data = pi0dat, mapping = aes(x = Method, y = Pi0hat)) +
+  facet_grid(.~Nsamp) +
+  geom_boxplot() +
+  geom_hline(yintercept = 0.9) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+        strip.background = element_rect(fill = "white")) +
+  ggtitle("pi0hat")
+print(pl)
+```
+
+Note that I haven't implemented $\alpha = 1$ for BACKWASH yet, so those are the results when I simulated $\alpha = 1$ but I fit $\alpha = 0$. BACKWASH looks the best overall. MOUTHWASH, without the scaled variances, worked poorly, as expected. Though in BACKWASH, I didn't use the scaled variances and it still worked really well with $\alpha = 0$. This is weird.
+
+MOUTHWASH and BACKWASH have the best AUC, as usual.
+
+```{r}
+aucdat <- select(dat, nullpi, Nsamp, ncontrols, contains("auc_")) %>%
+  gather(key = "Method", value = "auchat", contains("auc_"))
+aucdat$Method <- stringr::str_replace(aucdat$Method, "auc_", "")
+pl <- ggplot(data = aucdat, mapping = aes(x = Method, y = auchat)) +
+  facet_grid(.~Nsamp) +
+  geom_boxplot() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+        strip.background = element_rect(fill = "white")) +
+  ggtitle("auchat")
+print(pl)
+```
+
+```{r}
+sessionInfo()
+```
