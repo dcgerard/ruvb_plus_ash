@@ -34,6 +34,7 @@ output:
 # alpha = 1
 * [First try at $\alpha = 1$](alpha_1.html) No methods work well when I fit everything correctly assuming $\alpha = 1$. I did not run MOUTHWASH and BACKWASH with variance inflation because I hadn't implemented the variance inflation penalty yet to identify the model. Note that I ran all simulations when $\pi_0 = 0.1$ and the number of controls was 10.
 * [Simulate under alpha = 1 but fit assuming alpha = 0](alpha_1_assume_0.html). Variance-scaled versions of BACKWASH and MOUTHWASH still work pretty darn well.
+* [Look at the different ways to fit MOUTHWASH and BACKWASH.](alpha_1_joint.html) I simulated under $\alpha = 1$ but I fit under either $\alpha = 0$ or $\alpha = 1$ and using either `scale_var = TRUE` or `scale_var = FALSE`. For `scale_var = TRUE` and $\alpha = 1$ I used the penalty $-0.01 / \xi$, where $\xi$ is the variance inflation parameter. In general, it is always better to have `scale_var = TRUE`. Surprisingly, though, the methods that fit assuming $\alpha = 0$ actually performed BETTER. But MOUTHWASH and BACKWASH with $\alpha = 1$ and `scale_var = TRUE` performed competitively.
 * [Using the correct level of `sprop` seems to help when we have the penalty](diff_sprop_varpen.html).
 
 [rmarkdown]: http://rmarkdown.rstudio.com/rmarkdown_websites.htm
