@@ -1,0 +1,83 @@
+---
+title: "Analyze Alpha = 1"
+author: "David Gerard"
+date: "May 17, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Abstract
+
+I simulated the effects under an exchangeable $t$-statistic model. I fit the model under four possible combinations (for MOUTHWASH and BACKWASH).
+
+# Analysis
+
+I ran the simulations [here](https://github.com/dcgerard/ruvb_plus_ash/blob/master/code/exchangeable_mouthwash_sims.R), [here](https://github.com/dcgerard/ruvb_plus_ash/blob/master/code/exchangeable_mouthwash_sims_asifalpha0.R), and [here](https://github.com/dcgerard/ruvb_plus_ash/blob/master/code/exchangeable_mouthwash_sims_pen.R) with methods coded up [here](https://github.com/dcgerard/ruvb_plus_ash/blob/master/code/non_nc_methods.R) and [here](https://github.com/dcgerard/ruvb_sims/blob/nc_var/Code/nc_adjustment_methods.R).
+
+```{r, fig.height=9, fig.width=9}
+library(tidyverse)
+dat_1_0 <- as_data_frame(readRDS("../output/alpha_1_sims_out/sims_out.RDS"))
+dat_1_1 <- as_data_frame(readRDS("../output/alpha_1_sims_out/sims_out_pen.RDS"))
+dat_0_10 <- as_data_frame(readRDS("../output/alpha_1_sims_out/sims_out_asifalpha0.RDS"))
+
+
+subdat1 <- select(dat_1_0, contains("pi0_")) %>% select(contains("ash"))
+names(subdat1) <- paste0(names(subdat1), "_alpha1")
+subdat2 <- select(dat_1_1, pi0_ash_mouthwash_norm, pi0_ash_mouthwash_t, pi0_ash_backwash)
+names(subdat2) <- paste0(names(subdat2), "_sv_alpha1")
+subdat3 <- select(dat_0_10, contains("pi0")) %>% select(contains("ash"))
+names(subdat3) <- paste0(names(subdat3), "_alpha0")
+subdat4 <- select(dat_0_10, contains("pi0")) %>% select(contains("qvalue"))
+
+dat <- bind_cols(select(dat_1_0, Nsamp), subdat1, subdat2, subdat3, subdat4)
+names(dat) <- stringr::str_replace(names(dat), "pi0_", "")
+longdat <- gather(dat, key = "Method", value = "Pi0hat", 2:ncol(dat))
+
+pl <- ggplot(data = longdat, mapping = aes(x = Method, y = Pi0hat)) +
+  facet_grid(.~Nsamp) +
+  geom_boxplot() +
+  geom_hline(yintercept = 0.9) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+        strip.background = element_rect(fill = "white")) +
+  ggtitle("pi0hat")
+print(pl)
+```
+
+MOUTHWASH and BACKWASH have the best AUC, as usual.
+
+```{r, fig.height=9, fig.width=9}
+library(tidyverse)
+dat_1_0 <- as_data_frame(readRDS("../output/alpha_1_sims_out/sims_out.RDS"))
+dat_1_1 <- as_data_frame(readRDS("../output/alpha_1_sims_out/sims_out_pen.RDS"))
+dat_0_10 <- as_data_frame(readRDS("../output/alpha_1_sims_out/sims_out_asifalpha0.RDS"))
+
+
+subdat1 <- select(dat_1_0, contains("auc_")) %>% select(contains("ash"))
+names(subdat1) <- paste0(names(subdat1), "_alpha1")
+subdat2 <- select(dat_1_1, auc_ash_mouthwash_norm, auc_ash_mouthwash_t, auc_ash_backwash)
+names(subdat2) <- paste0(names(subdat2), "_sv_alpha1")
+subdat3 <- select(dat_0_10, contains("auc")) %>% select(contains("ash"))
+names(subdat3) <- paste0(names(subdat3), "_alpha0")
+subdat4 <- select(dat_0_10, contains("auc")) %>% select(contains("pvalue"))
+
+dat <- bind_cols(select(dat_1_0, Nsamp), subdat1, subdat2, subdat3, subdat4)
+names(dat) <- stringr::str_replace(names(dat), "auc_", "")
+longdat <- gather(dat, key = "Method", value = "auc", 2:ncol(dat))
+
+pl <- ggplot(data = longdat, mapping = aes(x = Method, y = auc)) +
+  facet_grid(.~Nsamp) +
+  geom_boxplot() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+        strip.background = element_rect(fill = "white")) +
+  ggtitle("auc")
+print(pl)
+```
+
+```{r}
+sessionInfo()
+```
