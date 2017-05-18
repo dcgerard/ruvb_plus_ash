@@ -1,0 +1,86 @@
+---
+title: "Differences in `sprop` and `var_inflate_pen`"
+author: "David Gerard"
+date: "May 18, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Abstract
+
+Here, I look at differences in using the `sprop` and `var_inflate_pen` parameters in `vicar::mouthwash`.
+
+# Analysis
+
+First, we obtain simulated data with some signal. The original Gtex data were processed in the same pipeline as [here](https://github.com/dcgerard/ruvb_sims).
+
+```{r}
+set.seed(9)
+ngene <- 1000
+nsamp <- 20
+nullpi <- 0.5
+log2foldsd <- 3
+
+mat <- t(as.matrix(read.csv("../../reproduce_ruv3/Output/gtex_tissue_gene_reads_v6p/muscle.csv",
+                            header = TRUE)[, -c(1,2)]))
+submat <- mat[, order(apply(mat, 2, median), decreasing = TRUE)[1:ngene]]
+rm(mat)
+d_out <- seqgendiff::poisthin(mat = submat,
+                              nsamp = nsamp,
+                              ngene = ngene,
+                              signal_params = list(mean = 0, sd = log2foldsd),
+                              gvec = rep(TRUE, length(ngene)),
+                              gselect = "custom",
+                              prop_null = nullpi,
+                              alpha = 1)
+which_null <- abs(d_out$beta) < 10 ^ -6
+nnull         <- sum(which_null)
+
+beta_true <- d_out$beta
+X <- d_out$X
+colnames(X) <- c("Intercept", "Treatment")
+Y <- log2(d_out$Y + 1)
+num_sv <- max(sva::num.sv(t(Y), mod = X, method = "be"), 1)
+```
+
+Now, we fit mouthwash under different levels of `sprop` and `var_inflate_pen`.
+
+```{r}
+library(vicar)
+mout_0_0 <- mouthwash(Y = Y, X = X, k = num_sv, cov_of_interest = 2,
+                      include_intercept = FALSE, sprop = 0, var_inflate_pen = 0)
+mout_0_1 <- mouthwash(Y = Y, X = X, k = num_sv, cov_of_interest = 2,
+                      include_intercept = FALSE, sprop = 0, var_inflate_pen = 1)
+mout_1_1 <- mouthwash(Y = Y, X = X, k = num_sv, cov_of_interest = 2,
+                      include_intercept = FALSE, sprop = 1, var_inflate_pen = 1)
+mout_1_0001 <- mouthwash(Y = Y, X = X, k = num_sv, cov_of_interest = 2,
+                      include_intercept = FALSE, sprop = 1, var_inflate_pen = 0.0001)
+```
+
+# Compare fits
+
+First, there is more similarity in the variability in estimates of `xi` between different `sprop`'s than between different `var_inflate_pen`'s.
+```{r}
+mout_0_0$xi 
+mout_0_1$xi 
+mout_1_0001$xi 
+mout_1_1$xi 
+```
+
+Second, when we use the correct level of `sprop`, we get much better estimates of `pi0`.
+
+```{r}
+mout_0_0$pi0
+mout_0_1$pi0
+mout_1_0001$pi0
+mout_1_1$pi0
+```
+
+These are results for just one dataset, but they seem to occur in general.
+
+```{r}
+sessionInfo()
+```
