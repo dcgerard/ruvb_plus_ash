@@ -8,4 +8,4 @@ ex1 : exchangeable_mouthwash_sims.R
 .PHONY : ex2
 ex2 : exchangeable_mouthwash_sims_asifalpha0.R
 	mkdir -p ../output/alpha_1_sims_out
-	exchangeable_mouthwash_sims_asifalpha0.R
+	Rscript exchangeable_mouthwash_sims_asifalpha0.R

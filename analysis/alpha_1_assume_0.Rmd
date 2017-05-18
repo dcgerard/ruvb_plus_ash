@@ -17,7 +17,7 @@ I simulated the effects under an exchangeable $t$-statistic model ($\alpha = 1$)
 
 I ran the simulations [here](https://github.com/dcgerard/ruvb_plus_ash/blob/master/code/exchangeable_mouthwash_sims_asifalpha0.R) with methods coded up [here](https://github.com/dcgerard/ruvb_plus_ash/blob/master/code/non_nc_methods.R) and [here](https://github.com/dcgerard/ruvb_sims/blob/nc_var/Code/nc_adjustment_methods.R).
 
-I am still getting pretty great behavior from MOUTHWASH and BACKWASH as long as you are scaling the variances. These are suffixed with "_sv" in the figure. 
+I am still getting really good behavior from MOUTHWASH and BACKWASH as long as you are scaling the variances. These are suffixed with "_sv" in the figure.
 
 ```{r}
 library(tidyverse)

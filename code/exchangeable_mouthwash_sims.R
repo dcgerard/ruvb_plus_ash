@@ -179,7 +179,7 @@ for (list_index in 1:nrow(par_vals)) {
 
 ## these do not change
 args_val              <- list()
-args_val$log2foldsd   <- 0.8
+args_val$log2foldsd   <- 3
 args_val$Ngene        <- 1000
 args_val$log2foldmean <- 0
 args_val$skip_gene    <- 0
@@ -192,7 +192,7 @@ rm(mat)
 
 # start_time <- proc.time()
 # oout <- one_rep(par_list[[101]], args_val)
-# oout[stringr::str_detect(names(oout), "pi0")]
+# oout[stringr::str_detect(names(oout), "auc")]
 # end_time <- proc.time() - start_time
 # end_time
 

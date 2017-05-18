@@ -309,13 +309,9 @@ div.tocify {
 </div>
 
 
-<div id="edit" class="section level1">
-<h1>EDIT</h1>
-<p>I figured out that BACKWASH had a bug where the variance inflation parameter was still being once (though not more than once) even though <code>scale_var = FALSE</code>. This indicates that what’s important is the variance scaling, not that we fit BACKWASH assuming <code>\alpha = 0</code>.</p>
-</div>
 <div id="abstract" class="section level1">
 <h1>Abstract</h1>
-<p>I simulated the effects under an exchangeable <span class="math inline">\(t\)</span>-statistic model. Here, I look at the early sims.</p>
+<p>I simulated and fit the effects under an exchangeable <span class="math inline">\(t\)</span>-statistic model. Nothing works well. I didn’t run MOUTHWASH and BACKWASH with a variance inflation term because this term is non-identified.</p>
 </div>
 <div id="analysis" class="section level1">
 <h1>Analysis</h1>
@@ -344,18 +340,17 @@ pl &lt;- ggplot(data = pi0dat, mapping = aes(x = Method, y = Pi0hat)) +
   ggtitle(&quot;pi0hat&quot;)
 print(pl)</code></pre>
 <p><img src="alpha_1_files/figure-html/unnamed-chunk-1-1.png" width="672" /></p>
-<p>Note that I haven’t implemented <span class="math inline">\(\alpha = 1\)</span> for BACKWASH yet, so those are the results when I simulated <span class="math inline">\(\alpha = 1\)</span> but I fit <span class="math inline">\(\alpha = 0\)</span>. BACKWASH looks the best overall. MOUTHWASH, without the scaled variances, worked poorly, as expected. Though in BACKWASH, I didn’t use the scaled variances and it still worked really well with <span class="math inline">\(\alpha = 0\)</span>. This is weird.</p>
 <p>MOUTHWASH and BACKWASH have the best AUC, as usual.</p>
 <pre class="r"><code>aucdat &lt;- select(dat, nullpi, Nsamp, ncontrols, contains(&quot;auc_&quot;)) %&gt;%
-  gather(key = &quot;Method&quot;, value = &quot;auchat&quot;, contains(&quot;auc_&quot;))
+  gather(key = &quot;Method&quot;, value = &quot;auc&quot;, contains(&quot;auc_&quot;))
 aucdat$Method &lt;- stringr::str_replace(aucdat$Method, &quot;auc_&quot;, &quot;&quot;)
-pl &lt;- ggplot(data = aucdat, mapping = aes(x = Method, y = auchat)) +
+pl &lt;- ggplot(data = aucdat, mapping = aes(x = Method, y = auc)) +
   facet_grid(.~Nsamp) +
   geom_boxplot() +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
         strip.background = element_rect(fill = &quot;white&quot;)) +
-  ggtitle(&quot;auchat&quot;)
+  ggtitle(&quot;auc&quot;)
 print(pl)</code></pre>
 <p><img src="alpha_1_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
 <pre class="r"><code>sessionInfo()</code></pre>
