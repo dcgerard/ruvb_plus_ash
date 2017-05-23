@@ -1,6 +1,5 @@
 *~
 *#
 
-study_one_rep_cache/
-real_data_explore_cache/
-real_data_explore_files/
+*_cache/
+*_files/
