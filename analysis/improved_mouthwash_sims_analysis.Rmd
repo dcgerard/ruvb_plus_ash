@@ -1,0 +1,146 @@
+---
+title: "Improved MOUTHWASH Simulations Analysis"
+author: "David Gerard"
+date: "May 25, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Abstract
+
+Here, I run the mouthwash simulations under $\alpha = 0$. Most methods are now the limma-shrunk methods. I additionally have:
+
+1. Made it so that CATErr uses the truncated SVD as its factor analysis.
+2. Included the normal-likelihood version of MOUTHWASH with a uniform grid.
+3. Fit MOUTHWASH assuming $\alpha = 1$ even though $\alpha = 0$.
+
+The simulations were implemented [here](https://github.com/dcgerard/ruvb_plus_ash/blob/master/code/mouthwash_sims_alphais0.R) with code [here](https://github.com/dcgerard/ruvb_plus_ash/blob/master/code/non_nc_methods.R) and [here](https://github.com/dcgerard/ruvb_sims/blob/nc_var/Code/nc_adjustment_methods.R).
+
+These simulations were run with 
+
+# Read in data
+```{r, fig.height=9, fig.width=9}
+library(tidyverse)
+dat <- as_data_frame(readRDS(file = "../output/alpha_1_sims_out/sims_out_alpha0.RDS"))
+
+subdat <- select(dat, Nsamp, contains("pi0_")) %>%
+  gather(key = "Method", value = "pi0hat", contains("pi0"))
+subdat$Method <- stringr::str_replace(subdat$Method, "pi0_", "")
+subdat$type <- rep("other", nrow(subdat))
+subdat$type[stringr::str_detect(subdat$Method, "m$")] <- "MAD"
+subdat$type[stringr::str_detect(subdat$Method, "norm$")] <- "other"
+subdat$type[stringr::str_detect(subdat$Method, "c$")] <- "ctl"
+
+ggplot(data = subdat, mapping = aes(y = pi0hat, x = Method, fill = type)) +
+  facet_grid(Nsamp~.) +
+  geom_boxplot() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+        strip.background = element_rect(fill = "white")) +
+  geom_hline(yintercept = 0.9, lty = 2, alpha = 1/2, lwd = 1) +
+  ggtitle("Pi0hat")
+```
+
+From the above plot, MOUTHWASH methods (fit correctly assuming $\alpha = 0$) do the best in terms of calibration.
+
+Let's look at MOUTHWASH methods in more detail. We have the following key:
+
+- norm = normal mouthwash with normal mixture prior fit with $\alpha = 0$
+- norm_alpha1 = normal mouthwash with normal mixture prior fit with $\alpha = 1$
+- norm_unif = normal mouthwash with uniform mixture prior fit with $\alpha = 0$
+- norm_unif_alpha1 = normal mouthwash with uniform mixture prior fit with $\alpha = 1$
+- t = t mouthwash with uniform mixture prior fit with $\alpha = 0$
+- t_alpha1 = t mouthwash with uniform mixture prior fit with $\alpha = 1$
+
+```{r}
+mouth_dat <- filter(subdat, stringr::str_detect(Method, "mouthwash"))
+mouth_dat$Method <- stringr::str_replace(mouth_dat$Method, "ash_mouthwash_", "")
+
+ggplot(data = mouth_dat, mapping = aes(y = pi0hat, x = Method)) +
+  facet_grid(Nsamp~., scales = "free_y") +
+  geom_boxplot() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+        strip.background = element_rect(fill = "white")) +
+  geom_hline(yintercept = 0.9, lty = 2, alpha = 1/2, lwd = 1) +
+  ggtitle("Pi0hat for MOUTHWASH")
+
+```
+
+Thoughts:
+
+1. If anything, using the uniform mixture worked *better* with the normal distribution. It isn't like the *t* with being too conservative.
+2. Fitting MOUTHWASH assuming $\alpha = 1$ when $\alpha = 0$ results in more variable estimate of $\pi_0$.
+
+
+```{r, fig.height=9, fig.width=9}
+rm(list = ls())
+dat <- as_data_frame(readRDS(file = "../output/alpha_1_sims_out/sims_out_alpha0.RDS"))
+
+subdat <- select(dat, Nsamp, contains("auc_")) %>%
+  gather(key = "Method", value = "auc", contains("auc"))
+subdat$Method <- stringr::str_replace(subdat$Method, "auc_", "")
+subdat$type <- rep("other", nrow(subdat))
+subdat$type[stringr::str_detect(subdat$Method, "m$")] <- "MAD"
+subdat$type[stringr::str_detect(subdat$Method, "norm$")] <- "other"
+subdat$type[stringr::str_detect(subdat$Method, "c$")] <- "ctl"
+
+ggplot(data = subdat, mapping = aes(y = auc, x = Method, fill = type)) +
+  facet_grid(Nsamp~.) +
+  geom_boxplot() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+        strip.background = element_rect(fill = "white")) +
+  ggtitle("auc")
+```
+
+```{r, fig.height=9, fig.width=9}
+sumdat <- subdat %>% group_by(Method, Nsamp) %>%
+  summarize(med_auc = median(auc)) %>%
+  ungroup()
+sumdat$type <- rep("other", nrow(sumdat))
+sumdat$type[stringr::str_detect(sumdat$Method, "m$")] <- "MAD"
+sumdat$type[stringr::str_detect(sumdat$Method, "norm$")] <- "other"
+sumdat$type[stringr::str_detect(sumdat$Method, "c$")] <- "ctl"
+
+maxdat <- sumdat %>% group_by(Nsamp) %>%
+  summarize(max_auc = max(med_auc)) %>%
+  ungroup()
+
+ggplot(data = sumdat, mapping = aes(x = Method, y = med_auc, color = type)) +
+  geom_point() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+        strip.background = element_rect(fill = "white")) +
+  facet_grid(Nsamp ~ ., scales = "free_y") +
+  geom_hline(data = maxdat, mapping = aes(yintercept = max_auc), lty = 2) +
+  ylab("Median AUC") +
+  ggtitle("Median AUC")
+
+```
+
+
+Look at just the mouthwash methods.
+
+Things look almost the same. Though the uniform mixtures methods perform slightly worse for $\alpha = 0$. This might just be random chance. I should explore 3 vs 3 here.
+```{r}
+mouth_dat <- filter(sumdat, stringr::str_detect(Method, "mouthwash"))
+mouth_dat$Method <- stringr::str_replace(mouth_dat$Method, "ash_mouthwash_", "")
+
+ggplot(data = mouth_dat, mapping = aes(x = Method, y = med_auc)) +
+  geom_point() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+        strip.background = element_rect(fill = "white")) +
+  facet_grid(Nsamp ~ ., scales = "free_y") +
+  geom_hline(data = maxdat, mapping = aes(yintercept = max_auc), lty = 2) +
+  ylab("Median AUC") +
+  ggtitle("Median AUC")
+```
+
+```{r}
+sessionInfo()
+```

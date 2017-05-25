@@ -5,7 +5,8 @@ cate_rr <- function(Y, X, num_sv, calibrate = FALSE) {
   calibrate <- as.logical(calibrate)
   cate_rr <- cate::cate.fit(Y = Y, X.primary = X[, 2, drop = FALSE],
                             X.nuis = X[, -2, drop = FALSE],
-                            r = num_sv, adj.method = "rr", calibrate = calibrate)
+                            r = num_sv, adj.method = "rr",
+                            calibrate = calibrate, fa.method = "pc")
   betahat     <- c(cate_rr$beta)
   sebetahat   <- c(sqrt(cate_rr$beta.cov.row * cate_rr$beta.cov.col) / sqrt(nrow(X)))
   pvalues     <- c(cate_rr$beta.p.value)
@@ -30,11 +31,11 @@ sva <- function(Y, X, num_sv) {
 
 
 mouthwash <- function(Y, X, num_sv, likelihood = c("normal", "t"), alpha = 0, scale_var = FALSE,
-                      var_inflate_pen = 0) {
+                      var_inflate_pen = 0, mixing_dist = NULL) {
   likelihood <- match.arg(likelihood)
-  if (likelihood == "t") {
+  if (is.null(mixing_dist) & likelihood == "t") {
     mixing_dist <- "sym_uniform"
-  } else {
+  } else if (is.null(mixing_dist)) {
     mixing_dist <- "normal"
   }
   mout <- vicar::mouthwash(Y = Y, X = X, k = num_sv, likelihood = likelihood,
