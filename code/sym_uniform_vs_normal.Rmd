@@ -1,0 +1,72 @@
+---
+title: "Sym_uniform vs Normal"
+author: "David Gerard"
+date: "May 26, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Abstract
+
+The difference between $t$ and $normal$ might just be the difference between using a mixture of symmetric uniforms and using a mixture of normals.
+
+Here's an example where the difference is big
+
+```{r}
+set.seed(8)
+library(tidyverse)
+mat <- t(as.matrix(read.csv("../../reproduce_ruv3/Output/gtex_tissue_gene_reads_v6p/muscle.csv",
+                            header = TRUE)[, -c(1,2)]))
+sout <- seqgendiff::poisthin(mat = mat, nsamp = 6, ngene = 1000,
+                             gselect = "mean_max", 
+                             prop_null = 0.5)
+
+Y <- log2(sout$Y + 1)
+
+num_sv <- sva::num.sv(dat = t(Y), mod = sout$X)
+
+mout_n <- vicar::mouthwash(Y = Y, X = sout$X, k = num_sv)
+mout_su <- vicar::mouthwash(Y = Y, X = sout$X, k = num_sv, mixing_dist = "sym_uniform", 
+                            likelihood = "normal")
+mout_n$pi0
+mout_su$pi0
+```
+
+I think the normal is relatively stable with regards to the grid chosen. But the uniform is not. This is way the $t$ probably works worse --- the uniform grid is just unstable sometimes for some reason. I will demonstrate this by choosing a bunch of different grids.
+
+```{r}
+dense_grid <- c(0, 2 ^ seq(-40, 40, length = 80))
+mout_nd <- vicar::mouthwash(Y = Y, X = sout$X, k = num_sv, grid_seq = dense_grid)
+mout_sud <- vicar::mouthwash(Y = Y, X = sout$X, k = num_sv, mixing_dist = "sym_uniform", 
+                            likelihood = "normal", grid_seq = dense_grid)
+mout_nd$pi0
+mout_sud$pi0
+
+dense_grid <- c(0, 2 ^ seq(-30, 30, length = 60))
+mout_nd <- vicar::mouthwash(Y = Y, X = sout$X, k = num_sv, grid_seq = dense_grid)
+mout_sud <- vicar::mouthwash(Y = Y, X = sout$X, k = num_sv, mixing_dist = "sym_uniform", 
+                            likelihood = "normal", grid_seq = dense_grid)
+mout_nd$pi0
+mout_sud$pi0
+
+dense_grid <- c(0, 2 ^ seq(-20, 20, length = 40))
+mout_nd <- vicar::mouthwash(Y = Y, X = sout$X, k = num_sv, grid_seq = dense_grid)
+mout_sud <- vicar::mouthwash(Y = Y, X = sout$X, k = num_sv, mixing_dist = "sym_uniform", 
+                            likelihood = "normal", grid_seq = dense_grid)
+mout_nd$pi0
+mout_sud$pi0
+
+dense_grid <- c(0, 2 ^ seq(-20, 10, length = 30))
+mout_nd <- vicar::mouthwash(Y = Y, X = sout$X, k = num_sv, grid_seq = dense_grid)
+mout_sud <- vicar::mouthwash(Y = Y, X = sout$X, k = num_sv, mixing_dist = "sym_uniform", 
+                            likelihood = "normal", grid_seq = dense_grid)
+mout_nd$pi0
+mout_sud$pi0
+```
+
+```{r}
+sessionInfo()
+```

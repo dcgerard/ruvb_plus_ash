@@ -1,0 +1,96 @@
+---
+title: "Investigate t"
+author: "David Gerard"
+date: "May 26, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Abstract
+
+Here, I investigate the $t$ approximation.
+
+```{r}
+set.seed(6)
+library(tidyverse)
+mat <- t(as.matrix(read.csv("../../reproduce_ruv3/Output/gtex_tissue_gene_reads_v6p/muscle.csv",
+                            header = TRUE)[, -c(1,2)]))
+```
+
+```{r}
+sout <- seqgendiff::poisthin(mat = mat, nsamp = 6, ngene = 1000,
+                             gselect = "mean_max", 
+                             prop_null = 0.5)
+
+Y <- log2(sout$Y + 1)
+
+num_sv <- sva::num.sv(dat = t(Y), mod = sout$X)
+
+mout_n <- vicar::mouthwash(Y = Y, X = sout$X, k = num_sv, 
+                           grid_seq = c(0, 2 ^ seq(-20, 20, length = 40)))
+mout_su <- vicar::mouthwash(Y = Y, X = sout$X, k = num_sv, mixing_dist = "sym_uniform",
+                            grid_seq = c(0, 2 ^ seq(-20, 20, length = 40)), 
+                            likelihood = "normal")
+mout_n$pi0
+mout_su$pi0
+
+
+moutt <- vicar::mouthwash(Y = Y, X = sout$X, likelihood = "t", mixing_dist = "uniform", degrees_freedom = 50)
+```
+
+Take estimated confounder and see if resulting t statistics are t-distributed.
+
+```{r}
+XZ <- as_data_frame(cbind(sout$X, mout$Zhat))
+names(XZ) <- c("Intercept", "Treatment", 
+               paste0(rep("Confounder", ncol(mout$Zhat)), 1:ncol(mout$Zhat)))
+
+lmout <- limma::lmFit(obj = t(Y), design = XZ)
+tstats <- lmout$coefficients[, 2] / (lmout$stdev.unscaled[, 2] * lmout$sigma)
+
+## Sanity check
+# which_look <- 9
+# tempdat <- cbind(Y[, which_look], XZ)
+# names(tempdat)[1] <- "Y"
+# coef(summary(lm(Y ~ Intercept + Treatment + Confounder1 + Confounder2, data = tempdat)))
+# tstats[which_look]
+```
+
+QQ plot:
+```{r}
+df_look <- nrow(XZ) - ncol(XZ)
+theo_t <- qt(ppoints(length(tstats)), df = df_look)
+qqplot(x = tstats, y = theo_t)
+abline(0, 1)
+```
+
+It doesn't look too bad. Maybe the theoretical $t$ has slightly larger tails and has a slightly larger variance. What was the variance inflation term?
+```{r}
+mout$xi
+```
+
+```{r}
+llike <- function(x, degrees_freedom) {
+  sum(dt(x, df = degrees_freedom, log = TRUE))
+}
+oout <- stats::optim(par = df_look, x = tstats, 
+                     fn = llike, method = "Brent", lower = 0, upper = 30,
+                     control = list(fnscale = -1))
+oout$par
+df_look
+```
+
+So the degrees of freedom I use is too small. This makes sense given that I see the normal perform better, but it's weird since I would a priori believe that the df I use is too large.  Let's look at the QQplot with this new df. It does look a little better.
+
+```{r}
+theo_t <- qt(ppoints(length(tstats)), df = oout$par)
+qqplot(x = tstats, y = theo_t)
+abline(0, 1)
+```
+
+```{r}
+sessionInfo()
+```
