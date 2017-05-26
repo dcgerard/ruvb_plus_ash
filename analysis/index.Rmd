@@ -42,6 +42,7 @@ output:
 
 # $t$ vs normal
 * [Explore normal uniform and $t$ and $\alpha = 1$](improved_mouthwash_sims_analysis.html) In general, using $\alpha = 1$ works much worse. Using a uniform grid with a normal likelihood works just as well. Using a $t$ likelihood is overly conservative. CATErr is not improved when using the truncated SVD.
+* [I should probably change the grid for uniform](sym_uniform_vs_normal.html)
 
 [rmarkdown]: http://rmarkdown.rstudio.com/rmarkdown_websites.htm
 [rstudio]: https://www.rstudio.com/products/rstudio/download/preview/
