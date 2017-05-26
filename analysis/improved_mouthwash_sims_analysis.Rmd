@@ -21,12 +21,12 @@ The simulations were implemented [here](https://github.com/dcgerard/ruvb_plus_as
 
 These simulations were run with 
 
-# Read in data
+# $\pi_0$
 ```{r, fig.height=9, fig.width=9}
 library(tidyverse)
 dat <- as_data_frame(readRDS(file = "../output/alpha_1_sims_out/sims_out_alpha0.RDS"))
 
-subdat <- select(dat, Nsamp, contains("pi0_")) %>%
+subdat <- select(dat, nullpi, Nsamp, contains("pi0_")) %>%
   gather(key = "Method", value = "pi0hat", contains("pi0"))
 subdat$Method <- stringr::str_replace(subdat$Method, "pi0_", "")
 subdat$type <- rep("other", nrow(subdat))
@@ -35,12 +35,12 @@ subdat$type[stringr::str_detect(subdat$Method, "norm$")] <- "other"
 subdat$type[stringr::str_detect(subdat$Method, "c$")] <- "ctl"
 
 ggplot(data = subdat, mapping = aes(y = pi0hat, x = Method, fill = type)) +
-  facet_grid(Nsamp~.) +
+  facet_grid(Nsamp~nullpi) +
   geom_boxplot() +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
         strip.background = element_rect(fill = "white")) +
-  geom_hline(yintercept = 0.9, lty = 2, alpha = 1/2, lwd = 1) +
+  geom_hline(mapping = aes(yintercept = nullpi), lty = 2, lwd = 1, color = "gray50") +
   ggtitle("Pi0hat")
 ```
 
@@ -60,27 +60,29 @@ mouth_dat <- filter(subdat, stringr::str_detect(Method, "mouthwash"))
 mouth_dat$Method <- stringr::str_replace(mouth_dat$Method, "ash_mouthwash_", "")
 
 ggplot(data = mouth_dat, mapping = aes(y = pi0hat, x = Method)) +
-  facet_grid(Nsamp~., scales = "free_y") +
+  facet_grid(Nsamp~nullpi) +
   geom_boxplot() +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
         strip.background = element_rect(fill = "white")) +
-  geom_hline(yintercept = 0.9, lty = 2, alpha = 1/2, lwd = 1) +
+  geom_hline(mapping = aes(yintercept = nullpi), lty = 2, lwd = 1, color = "gray50") +
   ggtitle("Pi0hat for MOUTHWASH")
 
 ```
 
 Thoughts:
 
-1. If anything, using the uniform mixture worked *better* with the normal distribution. It isn't like the *t* with being too conservative.
+1. If anything, using the uniform mixture worked *better* with the normal distribution when $\pi_0 = 0.9$. It is a little more conservative when $\pi_0 = 0.5$, though not as conservative as the $t$.
 2. Fitting MOUTHWASH assuming $\alpha = 1$ when $\alpha = 0$ results in more variable estimate of $\pi_0$.
 
+
+# AUC
 
 ```{r, fig.height=9, fig.width=9}
 rm(list = ls())
 dat <- as_data_frame(readRDS(file = "../output/alpha_1_sims_out/sims_out_alpha0.RDS"))
 
-subdat <- select(dat, Nsamp, contains("auc_")) %>%
+subdat <- select(dat, nullpi, Nsamp, contains("auc_")) %>%
   gather(key = "Method", value = "auc", contains("auc"))
 subdat$Method <- stringr::str_replace(subdat$Method, "auc_", "")
 subdat$type <- rep("other", nrow(subdat))
@@ -89,7 +91,7 @@ subdat$type[stringr::str_detect(subdat$Method, "norm$")] <- "other"
 subdat$type[stringr::str_detect(subdat$Method, "c$")] <- "ctl"
 
 ggplot(data = subdat, mapping = aes(y = auc, x = Method, fill = type)) +
-  facet_grid(Nsamp~.) +
+  facet_grid(Nsamp~nullpi) +
   geom_boxplot() +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
@@ -98,7 +100,7 @@ ggplot(data = subdat, mapping = aes(y = auc, x = Method, fill = type)) +
 ```
 
 ```{r, fig.height=9, fig.width=9}
-sumdat <- subdat %>% group_by(Method, Nsamp) %>%
+sumdat <- subdat %>% group_by(Method, Nsamp, nullpi) %>%
   summarize(med_auc = median(auc)) %>%
   ungroup()
 sumdat$type <- rep("other", nrow(sumdat))
@@ -106,7 +108,7 @@ sumdat$type[stringr::str_detect(sumdat$Method, "m$")] <- "MAD"
 sumdat$type[stringr::str_detect(sumdat$Method, "norm$")] <- "other"
 sumdat$type[stringr::str_detect(sumdat$Method, "c$")] <- "ctl"
 
-maxdat <- sumdat %>% group_by(Nsamp) %>%
+maxdat <- sumdat %>% group_by(Nsamp, nullpi) %>%
   summarize(max_auc = max(med_auc)) %>%
   ungroup()
 
@@ -115,7 +117,7 @@ ggplot(data = sumdat, mapping = aes(x = Method, y = med_auc, color = type)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
         strip.background = element_rect(fill = "white")) +
-  facet_grid(Nsamp ~ ., scales = "free_y") +
+  facet_grid(Nsamp ~ nullpi) +
   geom_hline(data = maxdat, mapping = aes(yintercept = max_auc), lty = 2) +
   ylab("Median AUC") +
   ggtitle("Median AUC")
@@ -125,7 +127,7 @@ ggplot(data = sumdat, mapping = aes(x = Method, y = med_auc, color = type)) +
 
 Look at just the mouthwash methods.
 
-Things look almost the same. Though the uniform mixtures methods perform slightly worse for $\alpha = 0$. This might just be random chance. I should explore 3 vs 3 here.
+Things look almost the same. Though the uniform mixtures methods perform slightly worse for $\alpha = 0$. This might be due to random chance. The $t$ performs slightly worse when $\pi_0 = 0.9$ and $n = 6$, but not nearly as bad as in the original simulations. 0.7125 vs 0.71 is barly a difference. I wonder what is different now.
 ```{r}
 mouth_dat <- filter(sumdat, stringr::str_detect(Method, "mouthwash"))
 mouth_dat$Method <- stringr::str_replace(mouth_dat$Method, "ash_mouthwash_", "")
@@ -135,10 +137,42 @@ ggplot(data = mouth_dat, mapping = aes(x = Method, y = med_auc)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
         strip.background = element_rect(fill = "white")) +
-  facet_grid(Nsamp ~ ., scales = "free_y") +
+  facet_grid(Nsamp ~ nullpi, scales = "free_y") +
   geom_hline(data = maxdat, mapping = aes(yintercept = max_auc), lty = 2) +
   ylab("Median AUC") +
   ggtitle("Median AUC")
+```
+
+We'll calculate bootstrap intervals real quick
+
+```{r}
+mouth_sub <- filter(subdat, stringr::str_detect(Method, "mouthwash"))
+
+boot_med <- function(x, boot_num = 1000) {
+  bvec <- rep(NA, length = boot_num)
+  for (bindex in 1:boot_num) {
+    bvec[bindex] <- median(sample(x, replace = TRUE))
+  }
+  return(c(median(x), quantile(bvec, probs = c(0.025, 0.975))))
+}
+
+boot_out <- group_by(mouth_sub, Method, nullpi, Nsamp) %>%
+  do(setNames(data.frame(t(boot_med(.$auc))), c("median", "lower", "upper")))
+
+boot_out$Method <- stringr::str_replace(boot_out$Method, "ash_mouthwash_", "")
+```
+
+
+The CI's definitely overlap. I need to run this for more iterations.
+
+```{r}
+ggplot(data = boot_out, mapping = aes(y = median, x = Method, ymin = lower, ymax = upper)) +
+  geom_point() +
+  geom_linerange() +
+  theme_bw() +
+  facet_grid(Nsamp ~ nullpi, scales = "free_y") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), 
+        strip.background = element_rect(fill = "white"))
 ```
 
 ```{r}

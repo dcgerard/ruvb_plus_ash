@@ -198,8 +198,8 @@ itermax <- 100 ## itermax should be 500
 seed_start <- 2222
 
 ## these change
-nullpi_seq   <- c(0.9)
-Nsamp_seq    <- c(10, 40)
+nullpi_seq   <- c(0.5, 0.9)
+Nsamp_seq    <- c(6, 10, 40)
 ncontrol_seq <- c(10)
 
 par_vals <- expand.grid(list((1 + seed_start):(itermax + seed_start),

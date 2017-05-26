@@ -320,8 +320,8 @@ div.tocify {
 <p>The simulations were implemented <a href="https://github.com/dcgerard/ruvb_plus_ash/blob/master/code/mouthwash_sims_alphais0.R">here</a> with code <a href="https://github.com/dcgerard/ruvb_plus_ash/blob/master/code/non_nc_methods.R">here</a> and <a href="https://github.com/dcgerard/ruvb_sims/blob/nc_var/Code/nc_adjustment_methods.R">here</a>.</p>
 <p>These simulations were run with</p>
 </div>
-<div id="read-in-data" class="section level1">
-<h1>Read in data</h1>
+<div id="pi_0" class="section level1">
+<h1><span class="math inline">\(\pi_0\)</span></h1>
 <pre class="r"><code>library(tidyverse)</code></pre>
 <pre><code>## Loading tidyverse: ggplot2
 ## Loading tidyverse: tibble
@@ -334,7 +334,7 @@ div.tocify {
 ## lag():    dplyr, stats</code></pre>
 <pre class="r"><code>dat &lt;- as_data_frame(readRDS(file = &quot;../output/alpha_1_sims_out/sims_out_alpha0.RDS&quot;))
 
-subdat &lt;- select(dat, Nsamp, contains(&quot;pi0_&quot;)) %&gt;%
+subdat &lt;- select(dat, nullpi, Nsamp, contains(&quot;pi0_&quot;)) %&gt;%
   gather(key = &quot;Method&quot;, value = &quot;pi0hat&quot;, contains(&quot;pi0&quot;))
 subdat$Method &lt;- stringr::str_replace(subdat$Method, &quot;pi0_&quot;, &quot;&quot;)
 subdat$type &lt;- rep(&quot;other&quot;, nrow(subdat))
@@ -343,12 +343,12 @@ subdat$type[stringr::str_detect(subdat$Method, &quot;norm$&quot;)] &lt;- &quot;o
 subdat$type[stringr::str_detect(subdat$Method, &quot;c$&quot;)] &lt;- &quot;ctl&quot;
 
 ggplot(data = subdat, mapping = aes(y = pi0hat, x = Method, fill = type)) +
-  facet_grid(Nsamp~.) +
+  facet_grid(Nsamp~nullpi) +
   geom_boxplot() +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
         strip.background = element_rect(fill = &quot;white&quot;)) +
-  geom_hline(yintercept = 0.9, lty = 2, alpha = 1/2, lwd = 1) +
+  geom_hline(mapping = aes(yintercept = nullpi), lty = 2, lwd = 1, color = &quot;gray50&quot;) +
   ggtitle(&quot;Pi0hat&quot;)</code></pre>
 <p><img src="improved_mouthwash_sims_analysis_files/figure-html/unnamed-chunk-1-1.png" width="864" /></p>
 <p>From the above plot, MOUTHWASH methods (fit correctly assuming <span class="math inline">\(\alpha = 0\)</span>) do the best in terms of calibration.</p>
@@ -365,23 +365,26 @@ ggplot(data = subdat, mapping = aes(y = pi0hat, x = Method, fill = type)) +
 mouth_dat$Method &lt;- stringr::str_replace(mouth_dat$Method, &quot;ash_mouthwash_&quot;, &quot;&quot;)
 
 ggplot(data = mouth_dat, mapping = aes(y = pi0hat, x = Method)) +
-  facet_grid(Nsamp~., scales = &quot;free_y&quot;) +
+  facet_grid(Nsamp~nullpi) +
   geom_boxplot() +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
         strip.background = element_rect(fill = &quot;white&quot;)) +
-  geom_hline(yintercept = 0.9, lty = 2, alpha = 1/2, lwd = 1) +
+  geom_hline(mapping = aes(yintercept = nullpi), lty = 2, lwd = 1, color = &quot;gray50&quot;) +
   ggtitle(&quot;Pi0hat for MOUTHWASH&quot;)</code></pre>
 <p><img src="improved_mouthwash_sims_analysis_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
 <p>Thoughts:</p>
 <ol style="list-style-type: decimal">
-<li>If anything, using the uniform mixture worked <em>better</em> with the normal distribution. It isn’t like the <em>t</em> with being too conservative.</li>
+<li>If anything, using the uniform mixture worked <em>better</em> with the normal distribution when <span class="math inline">\(\pi_0 = 0.9\)</span>. It is a little more conservative when <span class="math inline">\(\pi_0 = 0.5\)</span>, though not as conservative as the <span class="math inline">\(t\)</span>.</li>
 <li>Fitting MOUTHWASH assuming <span class="math inline">\(\alpha = 1\)</span> when <span class="math inline">\(\alpha = 0\)</span> results in more variable estimate of <span class="math inline">\(\pi_0\)</span>.</li>
 </ol>
+</div>
+<div id="auc" class="section level1">
+<h1>AUC</h1>
 <pre class="r"><code>rm(list = ls())
 dat &lt;- as_data_frame(readRDS(file = &quot;../output/alpha_1_sims_out/sims_out_alpha0.RDS&quot;))
 
-subdat &lt;- select(dat, Nsamp, contains(&quot;auc_&quot;)) %&gt;%
+subdat &lt;- select(dat, nullpi, Nsamp, contains(&quot;auc_&quot;)) %&gt;%
   gather(key = &quot;Method&quot;, value = &quot;auc&quot;, contains(&quot;auc&quot;))
 subdat$Method &lt;- stringr::str_replace(subdat$Method, &quot;auc_&quot;, &quot;&quot;)
 subdat$type &lt;- rep(&quot;other&quot;, nrow(subdat))
@@ -390,14 +393,14 @@ subdat$type[stringr::str_detect(subdat$Method, &quot;norm$&quot;)] &lt;- &quot;o
 subdat$type[stringr::str_detect(subdat$Method, &quot;c$&quot;)] &lt;- &quot;ctl&quot;
 
 ggplot(data = subdat, mapping = aes(y = auc, x = Method, fill = type)) +
-  facet_grid(Nsamp~.) +
+  facet_grid(Nsamp~nullpi) +
   geom_boxplot() +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
         strip.background = element_rect(fill = &quot;white&quot;)) +
   ggtitle(&quot;auc&quot;)</code></pre>
 <p><img src="improved_mouthwash_sims_analysis_files/figure-html/unnamed-chunk-3-1.png" width="864" /></p>
-<pre class="r"><code>sumdat &lt;- subdat %&gt;% group_by(Method, Nsamp) %&gt;%
+<pre class="r"><code>sumdat &lt;- subdat %&gt;% group_by(Method, Nsamp, nullpi) %&gt;%
   summarize(med_auc = median(auc)) %&gt;%
   ungroup()
 sumdat$type &lt;- rep(&quot;other&quot;, nrow(sumdat))
@@ -405,7 +408,7 @@ sumdat$type[stringr::str_detect(sumdat$Method, &quot;m$&quot;)] &lt;- &quot;MAD&
 sumdat$type[stringr::str_detect(sumdat$Method, &quot;norm$&quot;)] &lt;- &quot;other&quot;
 sumdat$type[stringr::str_detect(sumdat$Method, &quot;c$&quot;)] &lt;- &quot;ctl&quot;
 
-maxdat &lt;- sumdat %&gt;% group_by(Nsamp) %&gt;%
+maxdat &lt;- sumdat %&gt;% group_by(Nsamp, nullpi) %&gt;%
   summarize(max_auc = max(med_auc)) %&gt;%
   ungroup()
 
@@ -414,13 +417,13 @@ ggplot(data = sumdat, mapping = aes(x = Method, y = med_auc, color = type)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
         strip.background = element_rect(fill = &quot;white&quot;)) +
-  facet_grid(Nsamp ~ ., scales = &quot;free_y&quot;) +
+  facet_grid(Nsamp ~ nullpi) +
   geom_hline(data = maxdat, mapping = aes(yintercept = max_auc), lty = 2) +
   ylab(&quot;Median AUC&quot;) +
   ggtitle(&quot;Median AUC&quot;)</code></pre>
 <p><img src="improved_mouthwash_sims_analysis_files/figure-html/unnamed-chunk-4-1.png" width="864" /></p>
 <p>Look at just the mouthwash methods.</p>
-<p>Things look almost the same. Though the uniform mixtures methods perform slightly worse for <span class="math inline">\(\alpha = 0\)</span>. This might just be random chance. I should explore 3 vs 3 here.</p>
+<p>Things look almost the same. Though the uniform mixtures methods perform slightly worse for <span class="math inline">\(\alpha = 0\)</span>. This might be due to random chance. The <span class="math inline">\(t\)</span> performs slightly worse when <span class="math inline">\(\pi_0 = 0.9\)</span> and <span class="math inline">\(n = 6\)</span>, but not nearly as bad as in the original simulations. 0.7125 vs 0.71 is barly a difference. I wonder what is different now.</p>
 <pre class="r"><code>mouth_dat &lt;- filter(sumdat, stringr::str_detect(Method, &quot;mouthwash&quot;))
 mouth_dat$Method &lt;- stringr::str_replace(mouth_dat$Method, &quot;ash_mouthwash_&quot;, &quot;&quot;)
 
@@ -429,11 +432,35 @@ ggplot(data = mouth_dat, mapping = aes(x = Method, y = med_auc)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
         strip.background = element_rect(fill = &quot;white&quot;)) +
-  facet_grid(Nsamp ~ ., scales = &quot;free_y&quot;) +
+  facet_grid(Nsamp ~ nullpi, scales = &quot;free_y&quot;) +
   geom_hline(data = maxdat, mapping = aes(yintercept = max_auc), lty = 2) +
   ylab(&quot;Median AUC&quot;) +
   ggtitle(&quot;Median AUC&quot;)</code></pre>
 <p><img src="improved_mouthwash_sims_analysis_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<p>We’ll calculate bootstrap intervals real quick</p>
+<pre class="r"><code>mouth_sub &lt;- filter(subdat, stringr::str_detect(Method, &quot;mouthwash&quot;))
+
+boot_med &lt;- function(x, boot_num = 1000) {
+  bvec &lt;- rep(NA, length = boot_num)
+  for (bindex in 1:boot_num) {
+    bvec[bindex] &lt;- median(sample(x, replace = TRUE))
+  }
+  return(c(median(x), quantile(bvec, probs = c(0.025, 0.975))))
+}
+
+boot_out &lt;- group_by(mouth_sub, Method, nullpi, Nsamp) %&gt;%
+  do(setNames(data.frame(t(boot_med(.$auc))), c(&quot;median&quot;, &quot;lower&quot;, &quot;upper&quot;)))
+
+boot_out$Method &lt;- stringr::str_replace(boot_out$Method, &quot;ash_mouthwash_&quot;, &quot;&quot;)</code></pre>
+<p>The CI’s definitely overlap. I need to run this for more iterations.</p>
+<pre class="r"><code>ggplot(data = boot_out, mapping = aes(y = median, x = Method, ymin = lower, ymax = upper)) +
+  geom_point() +
+  geom_linerange() +
+  theme_bw() +
+  facet_grid(Nsamp ~ nullpi, scales = &quot;free_y&quot;) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), 
+        strip.background = element_rect(fill = &quot;white&quot;))</code></pre>
+<p><img src="improved_mouthwash_sims_analysis_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
 <pre class="r"><code>sessionInfo()</code></pre>
 <pre><code>## R version 3.3.2 (2016-10-31)
 ## Platform: x86_64-pc-linux-gnu (64-bit)
