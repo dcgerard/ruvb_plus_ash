@@ -35,7 +35,7 @@ mout_n$pi0
 mout_su$pi0
 ```
 
-I think the normal is relatively stable with regards to the grid chosen. But the uniform is not. This is way the $t$ probably works worse --- the uniform grid is just unstable sometimes for some reason. I will demonstrate this by choosing a bunch of different grids.
+I think the normal is relatively stable with regards to the grid chosen. But the uniform is not. This is perhaps why the $t$ probably works worse --- the uniform grid is just unstable the way it is implemented now. It looks better if I have a larger grid.
 
 ```{r}
 dense_grid <- c(0, 2 ^ seq(-40, 40, length = 80))
