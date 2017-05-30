@@ -41,14 +41,15 @@ for (index in 1:20) {
   df_naive <- nrow(XZ) - ncol(XZ)
 
   theo_t <- qt(p = ppoints(ncol(Y)), df = df_naive)
+  mean_emp_t <- tstats - mean(tstats)
 
-  dat <- data_frame(theoretical = sort(theo_t), empirical = sort(tstats))
-  pl <- ggplot(data = dat, mapping = aes(x = theoretical, y = empirical)) +
+  dat <- data_frame(theoretical = sort(theo_t), empirical = sort(tstats), mct = sort(mean_emp_t))
+  pl1 <- ggplot(data = dat, mapping = aes(x = theoretical, y = empirical)) +
     geom_point() +
     theme_bw() +
     ggtitle(paste0("QQ-Plot, q = ", svout$n.sv)) +
     geom_smooth(method = "lm", lty = 2)
-  print(pl)
+  print(pl1)
 }
 ```
 

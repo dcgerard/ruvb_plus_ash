@@ -346,14 +346,15 @@ for (index in 1:20) {
   df_naive &lt;- nrow(XZ) - ncol(XZ)
 
   theo_t &lt;- qt(p = ppoints(ncol(Y)), df = df_naive)
+  mean_emp_t &lt;- tstats - mean(tstats)
 
-  dat &lt;- data_frame(theoretical = sort(theo_t), empirical = sort(tstats))
-  pl &lt;- ggplot(data = dat, mapping = aes(x = theoretical, y = empirical)) +
+  dat &lt;- data_frame(theoretical = sort(theo_t), empirical = sort(tstats), mct = sort(mean_emp_t))
+  pl1 &lt;- ggplot(data = dat, mapping = aes(x = theoretical, y = empirical)) +
     geom_point() +
     theme_bw() +
     ggtitle(paste0(&quot;QQ-Plot, q = &quot;, svout$n.sv)) +
     geom_smooth(method = &quot;lm&quot;, lty = 2)
-  print(pl)
+  print(pl1)
 }</code></pre>
 <pre><code>## Number of significant surrogate variables is:  1 
 ## Iteration (out of 5 ):1  2  3  4  5</code></pre>
