@@ -1,0 +1,86 @@
+---
+title: "Explore Estimates of Variances"
+author: "David Gerard"
+date: "May 30, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Abstract
+
+I look at the variance estimates when $n = 6$ vs pca when $n = 430$.
+
+# Summary
+
+When you have only $n = 6$ samples, but there are actually around $q = 15$ unobserved confounders, we can only estimate max of 3 or 4 of these, so there is a lot of extra variability that we are not accounting for. If we do PCA on the full GTEx data and include the estimated number of confounders from the full GTEx data, we get much smaller estimates of the variances. But if we use the number of confounders estimated from the smaller data (where $n = 6$), we get variance estimates at about where the ols estimates are on average. The variance inflation term tends to estimate the variances too large.
+
+```{r, cache=TRUE}
+library(tidyverse)
+set.seed(821)
+mat <- t(as.matrix(read.csv("../../reproduce_ruv3/Output/gtex_tissue_gene_reads_v6p/muscle.csv",
+                            header = TRUE)[, -c(1,2)]))
+
+dout <- seqgendiff::poisthin(mat = mat, nsamp = nrow(mat), ngene = 1000, prop_null = 1, 
+                            gselect = "mean_max")
+
+Y <- log2(dout$Y + 1)
+X <- dout$X
+num_sv <- sva::num.sv(t(Y), X)
+sig_full <- vicar::pca_naive(Y = Y, r = num_sv + 1)$sig_diag
+sig_dat           <- data_frame(sig_full = sig_full)
+sig_dat$sig_one   <- vicar::pca_naive(Y = Y, r = 1)$sig_diag
+sig_dat$sig_two   <- vicar::pca_naive(Y = Y, r = 2)$sig_diag
+sig_dat$sig_three <- vicar::pca_naive(Y = Y, r = 3)$sig_diag
+sig_dat$sig_four  <- vicar::pca_naive(Y = Y, r = 4)$sig_diag
+sig_dat$sig_five  <- vicar::pca_naive(Y = Y, r = 5)$sig_diag
+
+meddat <- apply(sig_dat, 2, median)
+
+itermax <- 100
+med_sims <- rep(NA, length = itermax)
+numsv_sims <- rep(NA, length = itermax)
+xi_sims <- rep(NA, length = itermax)
+for (index in 1:itermax) {
+  which_sub <- sort(c(sample((1:nrow(Y))[X[, 2] == 1], size = 3),
+                     sample((1:nrow(Y))[X[, 2] == 0], size = 3)))
+  Ysub <- Y[which_sub, ]
+  Xsub <- X[which_sub, ]
+  num_sv_sub <- sva::num.sv(t(Ysub), Xsub)
+  mout <- vicar::mouthwash(Y = Ysub, X = Xsub, k = num_sv_sub)
+  numsv_sims[index] <- num_sv_sub
+  med_sims[index] <- median(mout$sig_diag)
+  xi_sims[index] <- mout$xi
+}
+```
+
+
+It seems that the non-inflated normal does better at estimating median of the variances.
+```{r}
+library(tidyverse)
+simsdat <- data_frame(xi = xi_sims, med_sig = med_sims, numsv = numsv_sims)
+simsdat$med_sig_full <- meddat[simsdat$numsv + 2]
+simsdat$adjusted_sig <- simsdat$xi * simsdat$med_sig
+
+boxplot(simsdat$adjusted_sig ~ simsdat$med_sig_full)
+boxplot(simsdat$med_sig ~ simsdat$med_sig_full)
+
+tabdat <- simsdat %>% group_by(numsv) %>%
+  summarize(mean_adjusted = mean(adjusted_sig), mean_sig = mean(med_sig))
+tabdat$full <- c(meddat[sort(unique(simsdat$numsv)) + 2])
+tabdat
+```
+
+```{r}
+summary(simsdat$xi)
+```
+
+```{r}
+
+```
+
+```{r}
+sessionInfo()
+```
