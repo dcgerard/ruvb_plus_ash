@@ -383,6 +383,29 @@ ggplot(data = mouth_dat, mapping = aes(y = pi0hat, x = Method)) +
 <li>There is definitely a uniform grid effect. The normal with a uniform grid lies between a t with a uniform grid and a normal with a normal grid.</li>
 </ol>
 </div>
+<div id="means-for-estimates-of-pi_0" class="section level1">
+<h1>Means for estimates of <span class="math inline">\(\pi_0\)</span></h1>
+<pre class="r"><code>summary_data &lt;- mouth_dat %&gt;% group_by(nullpi, Nsamp, Method) %&gt;%
+  summarize(median_pi0 = median(pi0hat),
+            mean_pi0 = mean(pi0hat), sd_pi0 = sd(pi0hat), n = length(pi0hat)) %&gt;%
+  ungroup() %&gt;%
+  mutate(lower = mean_pi0 - 1.96 * sd_pi0 / sqrt(n), 
+         upper = mean_pi0 + 1.96 * sd_pi0 / sqrt(n))
+
+dummydat &lt;- expand.grid(unique(summary_data$nullpi), unique(summary_data$Nsamp))
+names(dummydat) &lt;- c(&quot;nullpi&quot;, &quot;Nsamp&quot;)
+
+ggplot(data = summary_data, mapping = aes(x = Method, y = mean_pi0)) +
+  geom_point() +
+  geom_point(mapping = aes(y = median_pi0), pch = 2) +
+  geom_linerange(mapping = aes(ymin = lower, ymax = upper)) + 
+  facet_grid(Nsamp ~ nullpi) +
+  theme_bw() +
+  theme(strip.background = element_rect(fill = &quot;white&quot;)) +
+  geom_hline(mapping = aes(yintercept = nullpi), lty = 2) +
+  ggtitle(&quot;Mean and Median Pi0hat&quot;)</code></pre>
+<p><img src="improved_mouthwash_sims_analysis_longer_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+</div>
 <div id="auc" class="section level1">
 <h1>AUC</h1>
 <pre class="r"><code>rm(list = ls())
@@ -403,7 +426,7 @@ ggplot(data = subdat, mapping = aes(y = auc, x = Method, fill = type)) +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
         strip.background = element_rect(fill = &quot;white&quot;)) +
   ggtitle(&quot;auc&quot;)</code></pre>
-<p><img src="improved_mouthwash_sims_analysis_longer_files/figure-html/unnamed-chunk-3-1.png" width="864" /></p>
+<p><img src="improved_mouthwash_sims_analysis_longer_files/figure-html/unnamed-chunk-4-1.png" width="864" /></p>
 <pre class="r"><code>sumdat &lt;- subdat %&gt;% group_by(Method, Nsamp, nullpi) %&gt;%
   summarize(med_auc = median(auc)) %&gt;%
   ungroup()
@@ -425,7 +448,7 @@ ggplot(data = sumdat, mapping = aes(x = Method, y = med_auc, color = type)) +
   geom_hline(data = maxdat, mapping = aes(yintercept = max_auc), lty = 2) +
   ylab(&quot;Median AUC&quot;) +
   ggtitle(&quot;Median AUC&quot;)</code></pre>
-<p><img src="improved_mouthwash_sims_analysis_longer_files/figure-html/unnamed-chunk-4-1.png" width="864" /></p>
+<p><img src="improved_mouthwash_sims_analysis_longer_files/figure-html/unnamed-chunk-5-1.png" width="864" /></p>
 <p>Look at just the mouthwash methods.</p>
 <ol style="list-style-type: decimal">
 <li>The <span class="math inline">\(t\)</span> performs only slightly worse than the normal when <span class="math inline">\(n = 6\)</span> ad about equivalently for <span class="math inline">\(n = 10\)</span> or <span class="math inline">\(40\)</span>.</li>
@@ -443,7 +466,7 @@ ggplot(data = mouth_dat, mapping = aes(x = Method, y = med_auc)) +
   geom_hline(data = maxdat, mapping = aes(yintercept = max_auc), lty = 2) +
   ylab(&quot;Median AUC&quot;) +
   ggtitle(&quot;Median AUC&quot;)</code></pre>
-<p><img src="improved_mouthwash_sims_analysis_longer_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<p><img src="improved_mouthwash_sims_analysis_longer_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
 <p>We’ll calculate bootstrap intervals real quick</p>
 <pre class="r"><code>mouth_sub &lt;- filter(subdat, stringr::str_detect(Method, &quot;mouthwash&quot;))
 
@@ -468,7 +491,7 @@ boot_out$Method &lt;- stringr::str_replace(boot_out$Method, &quot;ash_mouthwash_
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), 
         strip.background = element_rect(fill = &quot;white&quot;)) +
   geom_hline(data = maxdat, mapping = aes(yintercept = max_auc), lty = 2)</code></pre>
-<p><img src="improved_mouthwash_sims_analysis_longer_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<p><img src="improved_mouthwash_sims_analysis_longer_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
 </div>
 <div id="mean-auc" class="section level1">
 <h1>Mean AUC</h1>
@@ -506,7 +529,7 @@ ggplot(data = sumdat, mapping = aes(x = Method, y = med_auc, color = type)) +
   geom_hline(data = maxdat, mapping = aes(yintercept = max_auc), lty = 2) +
   ylab(&quot;mean AUC&quot;) +
   ggtitle(&quot;mean AUC&quot;)</code></pre>
-<p><img src="improved_mouthwash_sims_analysis_longer_files/figure-html/unnamed-chunk-8-1.png" width="864" /></p>
+<p><img src="improved_mouthwash_sims_analysis_longer_files/figure-html/unnamed-chunk-9-1.png" width="864" /></p>
 <p>Look at just the mouthwash methods.</p>
 <ol style="list-style-type: decimal">
 <li>The <span class="math inline">\(t\)</span> performs a little worse than the “normal” in terms of mean AUC. And this appears to be statistically significant. But the normal with a uniform grid performs just as well. So there doesn’t seem to be a coding error here.</li>
@@ -524,7 +547,7 @@ ggplot(data = mouth_dat, mapping = aes(x = Method, y = med_auc)) +
   ylab(&quot;mean AUC&quot;) +
   ggtitle(&quot;mean AUC&quot;) +
   geom_linerange(mapping = aes(ymin = lower, ymax = upper))</code></pre>
-<p><img src="improved_mouthwash_sims_analysis_longer_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+<p><img src="improved_mouthwash_sims_analysis_longer_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
 <pre class="r"><code>sessionInfo()</code></pre>
 <pre><code>## R version 3.3.2 (2016-10-31)
 ## Platform: x86_64-pc-linux-gnu (64-bit)

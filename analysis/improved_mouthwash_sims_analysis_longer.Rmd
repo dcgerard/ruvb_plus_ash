@@ -76,6 +76,30 @@ Thoughts:
 1. The $t$ is just a little more conservative.
 2. There is definitely a uniform grid effect. The normal with a uniform grid lies between a t with a uniform grid and a normal with a normal grid.
 
+# Means for estimates of $\pi_0$
+
+```{r}
+summary_data <- mouth_dat %>% group_by(nullpi, Nsamp, Method) %>%
+  summarize(median_pi0 = median(pi0hat),
+            mean_pi0 = mean(pi0hat), sd_pi0 = sd(pi0hat), n = length(pi0hat)) %>%
+  ungroup() %>%
+  mutate(lower = mean_pi0 - 1.96 * sd_pi0 / sqrt(n), 
+         upper = mean_pi0 + 1.96 * sd_pi0 / sqrt(n))
+
+dummydat <- expand.grid(unique(summary_data$nullpi), unique(summary_data$Nsamp))
+names(dummydat) <- c("nullpi", "Nsamp")
+
+ggplot(data = summary_data, mapping = aes(x = Method, y = mean_pi0)) +
+  geom_point() +
+  geom_point(mapping = aes(y = median_pi0), pch = 2) +
+  geom_linerange(mapping = aes(ymin = lower, ymax = upper)) + 
+  facet_grid(Nsamp ~ nullpi) +
+  theme_bw() +
+  theme(strip.background = element_rect(fill = "white")) +
+  geom_hline(mapping = aes(yintercept = nullpi), lty = 2) +
+  ggtitle("Mean and Median Pi0hat")
+```
+
 
 # AUC
 
