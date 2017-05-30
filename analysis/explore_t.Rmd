@@ -1,0 +1,59 @@
+---
+title: "Explore T"
+author: "David Gerard"
+date: "May 30, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Abstract
+
+Here, I explore the $t$ statistics from the output of MOUTHWASH.
+
+
+# Some runs
+
+Try out a few all-null settings and plot the qqplots. They generally don't look too bad.
+
+I use the confounders estimated from SVA.
+
+```{r}
+library(tidyverse)
+set.seed(823)
+mat <- t(as.matrix(read.csv("../../reproduce_ruv3/Output/gtex_tissue_gene_reads_v6p/muscle.csv",
+                            header = TRUE)[, -c(1,2)]))
+
+for (index in 1:20) {
+  dout <- seqgendiff::poisthin(mat = mat, nsamp = 6, ngene = 1000, prop_null = 1, 
+                              gselect = "mean_max")
+  Y <- log2(dout$Y + 1)
+  X <- dout$X
+
+  svout <- sva::sva(dat = t(Y), mod = X)
+  XZ <- cbind(X, svout$sv)
+  lmout <- limma::lmFit(object = t(Y), design = XZ)
+  betahat <- coef(lmout)[, 2]
+  sebetahat <- lmout$sigma * lmout$stdev.unscaled[, 2]
+  tstats <- betahat / sebetahat
+  df_naive <- nrow(XZ) - ncol(XZ)
+
+  theo_t <- qt(p = ppoints(ncol(Y)), df = df_naive)
+
+  dat <- data_frame(theoretical = sort(theo_t), empirical = sort(tstats))
+  pl <- ggplot(data = dat, mapping = aes(x = theoretical, y = empirical)) +
+    geom_point() +
+    theme_bw() +
+    ggtitle(paste0("QQ-Plot, q = ", svout$n.sv)) +
+    geom_smooth(method = "lm", lty = 2)
+  print(pl)
+}
+```
+
+
+
+```{r}
+sessionInfo()
+```
