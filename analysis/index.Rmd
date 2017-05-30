@@ -46,6 +46,7 @@ output:
 * [Normal with uniform performs equally well to normal with normal. $t$ is only a little more conservative and the only significant difference is slightly worse AUC at $n = 6$ and $\pi_0 = 0.9$](improved_mouthwash_sims_analysis_longer.html). I don't know why.
 * [Lots of qq-plots of $t$-statistics when $n = 6$ and include estimated confounders from SVA](explore_t.html).
 * [Inflated variance estimates are larger than pca on full data.](explore_sigmahat.html)
+* [Same as above but with $t$-likelihood](explore_sigmahat_t.html). Same Findings.
 
 [rmarkdown]: http://rmarkdown.rstudio.com/rmarkdown_websites.htm
 [rstudio]: https://www.rstudio.com/products/rstudio/download/preview/
