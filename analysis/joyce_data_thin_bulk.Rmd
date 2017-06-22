@@ -18,7 +18,7 @@ Try playing around with `which_look`
 # Read in Data
 
 ```{r}
-set.seed(35)
+set.seed(90)
 library(tidyverse)
 library(sva)
 library(vicar)
@@ -30,26 +30,36 @@ count_mat <- counts_allgenes_null[[index]]$counts
 bad_y <- apply(count_mat, 1, sd) == 0
 count_mat_sc <- count_mat[!bad_y, ]  
 
-count_mat <- as.matrix(read.csv("../../../data/blood.csv")[, -c(1, 2)])  
+count_mat <- as.matrix(read.csv("../../reproduce_ruv3/Output/gtex_tissue_gene_reads_v6p/blood.csv")[, 3:102])  
 count_order <- order(rowMeans(count_mat), decreasing = TRUE)
 count_mat <- count_mat[count_order[1:nrow(count_mat_sc)], ]
 bulk_sum <- rowSums(count_mat)
 sc_sum   <- rowSums(count_mat_sc)
 
-count_mat <- round(count_mat * sc_sum / bulk_sum)
+count_mat_norm <- round(sc_sum / bulk_sum * count_mat)
 
-dout <- poisthin(mat = t(count_mat), ngene = nrow(count_mat), nsamp = 100, prop_null = 0.1)
+summary(c(count_mat_norm))
+summary(c(count_mat_sc))
+
+hist(log2(c(count_mat_norm) + 1), main = "Hist of log2 expression of normalized bulk")
+hist(log2(c(count_mat_sc) + 1), main = "Hist of log2 expression of sc")
+
+dout <- poisthin(mat = t(count_mat_norm), ngene = nrow(count_mat_norm), nsamp = 100, prop_null = 0.1)
 Y <- t(log2(dout$Y + 1))
+
+bad_y <- rowSums(Y) == 0
+
+Y <- Y[!bad_y, ]
 
 X <- dout$X
 colnames(X)[2] <- "Treatment"
-beta <- dout$beta
+beta <- dout$beta[!bad_y]
 which_null <- beta == 0
 ```
 
-# Hypothesis
+# Analysis
 
-The distribution of the true coefficients Joyce's dataset is `r sum(beta == 0)` null genes out of `r length(beta)` total genes. 
+Histogram of true effects are unimodal
 
 ```{r}
 ggplot(data = data_frame(beta = beta), mapping = aes(x = beta)) +
@@ -62,6 +72,7 @@ ggplot(data = data_frame(beta = beta), mapping = aes(x = beta)) +
 
 ```{r}
 num_sv <- sva::num.sv(dat = Y, mod = X)
+num_sv
 mout <- mouthwash(Y = t(Y), X = X, k = num_sv, scale_var = FALSE, 
                   cov_of_interest = 2, include_intercept = FALSE)
 ```
