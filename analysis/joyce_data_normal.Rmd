@@ -1,0 +1,96 @@
+---
+title: "Investigate t"
+author: "David Gerard"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Abstract
+
+Even in unimodal case, sva works a little worse than mouthwash for single cell.
+
+Try playing around with `which_look`
+
+# Read in Data
+
+```{r}
+set.seed(35)
+library(tidyverse)
+library(sva)
+library(vicar)
+library(seqgendiff)
+load("../data/counts-allgenes-null.rda")
+
+which_look <- "sc"
+## Choose one of these two for your data ------
+if (which_look == "sc") {
+  index <- 11
+  count_mat <- counts_allgenes_null[[index]]$counts 
+  bad_y <- apply(count_mat, 1, sd) == 0
+  count_mat <- count_mat[!bad_y, ]  
+} else if (which_look == "bulk") {
+  count_mat <- as.matrix(read.csv("../../../data/blood.csv")[, -c(1, 2)])  
+}
+
+
+dout <- poisthin(mat = t(count_mat), ngene = 998, nsamp = 100, prop_null = 0.1)
+Y <- t(log2(dout$Y + 1))
+
+X <- dout$X
+colnames(X)[2] <- "Treatment"
+beta <- dout$beta
+which_null <- beta == 0
+```
+
+# Hypothesis
+
+The distribution of the true coefficients Joyce's dataset is `r sum(beta == 0)` null genes out of `r length(beta)` total genes. 
+
+```{r}
+ggplot(data = data_frame(beta = beta), mapping = aes(x = beta)) +
+  geom_histogram() +
+  theme_bw()
+```
+
+
+# Fit MOUTHWASH
+
+```{r}
+num_sv <- sva::num.sv(dat = Y, mod = X)
+mout <- mouthwash(Y = t(Y), X = X, k = num_sv, scale_var = FALSE, 
+                  cov_of_interest = 2, include_intercept = FALSE)
+```
+
+Run SVA for comparison
+
+```{r}
+svout <- sva::sva(dat = Y, mod = X)
+Xsv <- cbind(X, svout$sv)
+limmaout <- limma::lmFit(object = Y, design = Xsv)
+ebayesout <- limma::ebayes(limmaout)
+svp <- ebayesout$p.value[, 2]
+```
+
+```{r}
+library(pROC)
+svroc <- roc(response = which_null, predictor = svp)
+m1roc <- roc(response = which_null, predictor = mout$result$lfdr)
+svroc$auc
+m1roc$auc
+```
+
+# Discussion on AUC
+
+
+```{r}
+plot(svroc)
+plot(m1roc)
+```
+
+```{r}
+sessionInfo()
+```

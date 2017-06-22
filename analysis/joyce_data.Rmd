@@ -1,5 +1,5 @@
 ---
-title: "Analyze Alpha = 1"
+title: "Analyze Joyce Data"
 author: "David Gerard"
 date: "`r Sys.Date()`"
 output: html_document
@@ -11,75 +11,176 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Abstract
 
-See if I can recapitulate Joyce's Results
+I try to make sense of Joyce's results.
 
-# Analysis
+" Read in Data
 
+Dataset 61 is the problem dataset:
 ```{r}
+library(tidyverse)
 library(sva)
 library(vicar)
-library(pROC)
-
-
 load("../data/counts-allgenes-bimodal.rda")
-ls()
-
-
-index <- 8
+index <- 61
 Y <- log2(counts_allgenes_bimodal[[index]]$counts + 1)
+bad_y <- apply(Y, 1, sd) == 0
+Y <- Y[!bad_y, ]
 
-mean_counts <- rowSums(Y)
-which_bad <- mean_counts < 10
-
-Y <- Y[!which_bad, ]
 X <- model.matrix(~as.factor(counts_allgenes_bimodal[[index]]$condition))
-beta <- counts_allgenes_bimodal[[index]]$beta[!which_bad]
-which_null <- counts_allgenes_bimodal[[index]]$null[!which_bad]
-colnames(X) <- c("Intercept", "Treatment")
-head(X)
+colnames(X)[2] <- "Treatment"
+beta <- counts_allgenes_bimodal[[index]]$beta[!bad_y]
+which_null <- counts_allgenes_bimodal[[index]]$null[!bad_y]
+```
 
+# Hypothesis
+
+The distribution of the true coefficients Joyce's dataset where MOUTHWASH performs very poorly has only `r sum(beta == 0)` null genes out of `r length(beta)` total genes. So it seems that MOUTHWASH works worse when the assumptions of unimodality about 0 are very unsatisfied!
+
+```{r}
+ggplot(data = data_frame(beta = beta), mapping = aes(x = beta)) +
+  geom_histogram() +
+  theme_bw()
+```
+
+Notice that the distribution of the $\beta$'s is approximately
+
+$$
+\beta =
+\begin{cases}
+2 & \text{ w.p. } 1/2\\
+-2 & \text{ w.p. } 1/2
+\end{cases}
+$$
+
+If $\beta$ were actually either 2 or -2, then we could represent this as a low-rank factor
+$$
+\beta = AB
+$$
+where $A \in \mathbb{R}^{p \times 2}$ contains indicator columns for $\beta_i$ being either -2 or 2 and $B = (-2, 2)^T$.
+
+What I am proposing is that there is an identifiability issue in the bimodal case! Perhaps the $z\alpha$ term is absorbing the signal.
+
+# Make the proposed low-rank term.
+
+```{r}
+temp_beta <- round(beta)
+temp_beta[beta == 0] <- -2
+temp_beta <- as.factor(temp_beta)
+A <- model.matrix(~temp_beta)
+A[, 1] <- A[, 1] - A[, 2]
+colnames(A) <- c("V1", "V2")
+B <- matrix(c(-2, 2), ncol = 1)
+stopifnot(sum(A %*% B - round(beta)) <= 2)
+```
+
+# Fit MOUTHWASH
+
+```{r}
 num_sv <- sva::num.sv(dat = Y, mod = X)
-num_sv
+mout <- mouthwash(Y = t(Y), X = X, k = num_sv, scale_var = FALSE,
+                  cov_of_interest = 2, include_intercept = FALSE)
 
-sva_out <- sva::sva(dat = Y, mod = X, n.sv = num_sv)
-X.sv      <- cbind(X, sva_out$sv)
-limma_out <- limma::lmFit(object = Y, design = X.sv)
-ebayes_out <- limma::ebayes(limma_out)
+names(mout)
+R_x <- qr.R(qr(X))
+alpha_tilde <- mout$alphahat / c(R_x[2, 2])
+z2 <- mout$z2
 
-lmout <- lm(t(Y) ~ X.sv)
-pvals <- sapply(summary(lmout), FUN = function(x){x$coefficients[2, 4]})
+alpha_z <- c(z2 %*% alpha_tilde)
+```
 
-aout <- ashr::ash.workhorse(betahat = limma_out$coefficients[, 2], sebetahat = sqrt(ebayes_out$s2.post) * limma_out$stdev.unscaled[, 2], mixcompdist = "normal")
-
-mout <- mouthwash(Y = t(Y), X = X, k = num_sv, cov_of_interest = 2, include_intercept = FALSE, scale_var = FALSE, likelihood = "normal", mixing_dist = "normal")
-mout$loglik
-mout$pi0
-mean(which_null)
-
-all((counts_allgenes_bimodal[[index]]$beta == 0) == counts_allgenes_bimodal[[index]]$null)
-auc(response = which_null, predictor = mout$result$lfdr)
-auc(response = which_null, predictor = aout$result$lfdr)
-auc(response = which_null, predictor = ebayes_out$p.value[, 2])
-auc(response = which_null, predictor = pvals)
-
-boxplot(limma_out$coefficients[, 2] ~ round(beta))
-boxplot(mout$result$PosteriorMean ~ round(beta))
+$\alpha z$ is indeed associated with the true $\beta$'s
+```{r}
+boxplot(alpha_z ~ temp_beta)
+```
 
 
-mout$pi0
-mean(which_null)
-samp <- vicar::rmixnorm(n = 10000, pi_vals = mout$fitted_g$pi, sd_seq = mout$fitted_g$sd, mean_seq = mout$fitted_g$mean)
-samp_ash <- vicar::rmixnorm(n = 10000, pi_vals = aout$fitted_g$pi, sd_seq = aout$fitted_g$sd, mean_seq = aout$fitted_g$mean)
+Can we do canonical correlation to see how perfectly we can recapitulate the $A$ matrix from above using the `alpha_tilde` matrix above?
 
-plot(density(samp_ash))
-plot(density(samp))
-plot(density(beta))
+```{r}
+ccout <- cancor(A, t(alpha_tilde), xcenter = FALSE, ycenter = FALSE)
+```
+
+The maximum correlations we observe between these two matrices is `ccout$cor`.
+
+## Recapitulate results
+```{r}
+new_A <- A %*% ccout$xcoef
+new_alpha_tilde <- t(alpha_tilde) %*% ccout$ycoef
+tot_mat <- cbind(new_A, new_alpha_tilde[, 1:2])
+vmat <- crossprod(tot_mat)
+cor_vec <- diag(cov2cor(vmat)[1:2, 3:4])
+cor_vec
+ccout$cor
+```
+
+It looks even stronger.
+```{r}
+boxplot(new_alpha_tilde[, 1] ~ new_A[, 1])
+boxplot(new_alpha_tilde[, 2] ~ new_A[, 2])
+```
+
+If we use this new alpha_tilde matrix with the first two columns subtracted, how does inference change?
+
+```{r}
+S_diag <- mout$sig_diag / c(R_x[2, 2] ^ 2)
+betahat <- limma::lmFit(Y, X)$coefficients[, 2]
+ash_out <- ashr::ash(betahat = betahat, sebetahat = sqrt(S_diag),
+                     mixcompdist = "normal")
+mout2 <- mouthwash_second_step(betahat_ols = betahat, S_diag = S_diag,
+                               alpha_tilde = new_alpha_tilde[, -c(1:2)],
+                               scale_var = FALSE, tau2_seq = ash_out$fitted_g$sd^2,
+                               lambda_seq = c(10, rep(1, length = length(ash_out$fitted_g$sd) - 1)))
+```
+
+Run SVA for comparison
+
+```{r}
+svout <- sva::sva(dat = Y, mod = X)
+Xsv <- cbind(X, svout$sv)
+limmaout <- limma::lmFit(object = Y, design = Xsv)
+ebayesout <- limma::ebayes(limmaout)
+svp <- ebayesout$p.value[, 2]
+```
+
+```{r}
+library(pROC)
+svroc <- roc(response = which_null, predictor = svp)
+m1roc <- roc(response = which_null, predictor = mout$result$lfdr)
+m2roc <- roc(response = which_null, predictor = mout2$result$lfdr)
+svroc$auc
+m1roc$auc
+m2roc$auc
+```
+
+It does a little better, but nowhere as good as SVA. Changing the alpha really changes the results though
+
+```{r}
+pl <- qplot(mout$result$lfdr, mout2$result$lfdr)
+print(pl)
+
+pl <- qplot(mout$result$lfdr, svp)
+print(pl)
+
+pl <- qplot(mout2$result$lfdr, svp)
+print(pl)
+```
+
+# Discussion on AUC
+
+Does AUC even make sense if there are only 2 null data points. Then it is a very noisy estimate. I got some improvement by subtracting off the part of the confounders associated with the signal, but it might just be for this dataset that SVA got lucky and mouthwash got unlucky.
 
 
-summary(mout$result$lfdr)
-summary(aout$result$lfdr)
+```{r}
+order(svp, decreasing = TRUE)[beta == 0]
+order(mout$result$lfdr, decreasing = TRUE)[beta == 0]
+order(mout2$result$lfdr, decreasing = TRUE)[beta == 0]
 
-plot(mout$result$lfdr, aout$result$lfdr)
+plot(svroc)
+plot(m1roc)
+plot(m2roc)
+
+S_diag[beta == 0]
+ebayesout$s2.post[beta == 0]
 ```
 
 ```{r}

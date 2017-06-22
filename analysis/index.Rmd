@@ -48,5 +48,10 @@ output:
 * [Inflated variance estimates are larger than pca on full data.](explore_sigmahat.html)
 * [Same as above but with $t$-likelihood](explore_sigmahat_t.html). Same Findings.
 
+# Single Cell
+* [See why Joyce's data is so bad for MOUTHWASH](joyce_data.html)
+* [Same as above but with a different index.](joyce_data_morenull.html)
+* [Look at normal signal](joyce_data_normal.html)
+
 [rmarkdown]: http://rmarkdown.rstudio.com/rmarkdown_websites.htm
 [rstudio]: https://www.rstudio.com/products/rstudio/download/preview/
