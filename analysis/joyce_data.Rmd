@@ -1,0 +1,87 @@
+---
+title: "Analyze Alpha = 1"
+author: "David Gerard"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Abstract
+
+See if I can recapitulate Joyce's Results
+
+# Analysis
+
+```{r}
+library(sva)
+library(vicar)
+library(pROC)
+
+
+load("../data/counts-allgenes-bimodal.rda")
+ls()
+
+
+index <- 8
+Y <- log2(counts_allgenes_bimodal[[index]]$counts + 1)
+
+mean_counts <- rowSums(Y)
+which_bad <- mean_counts < 10
+
+Y <- Y[!which_bad, ]
+X <- model.matrix(~as.factor(counts_allgenes_bimodal[[index]]$condition))
+beta <- counts_allgenes_bimodal[[index]]$beta[!which_bad]
+which_null <- counts_allgenes_bimodal[[index]]$null[!which_bad]
+colnames(X) <- c("Intercept", "Treatment")
+head(X)
+
+num_sv <- sva::num.sv(dat = Y, mod = X)
+num_sv
+
+sva_out <- sva::sva(dat = Y, mod = X, n.sv = num_sv)
+X.sv      <- cbind(X, sva_out$sv)
+limma_out <- limma::lmFit(object = Y, design = X.sv)
+ebayes_out <- limma::ebayes(limma_out)
+
+lmout <- lm(t(Y) ~ X.sv)
+pvals <- sapply(summary(lmout), FUN = function(x){x$coefficients[2, 4]})
+
+aout <- ashr::ash.workhorse(betahat = limma_out$coefficients[, 2], sebetahat = sqrt(ebayes_out$s2.post) * limma_out$stdev.unscaled[, 2], mixcompdist = "normal")
+
+mout <- mouthwash(Y = t(Y), X = X, k = num_sv, cov_of_interest = 2, include_intercept = FALSE, scale_var = FALSE, likelihood = "normal", mixing_dist = "normal")
+mout$loglik
+mout$pi0
+mean(which_null)
+
+all((counts_allgenes_bimodal[[index]]$beta == 0) == counts_allgenes_bimodal[[index]]$null)
+auc(response = which_null, predictor = mout$result$lfdr)
+auc(response = which_null, predictor = aout$result$lfdr)
+auc(response = which_null, predictor = ebayes_out$p.value[, 2])
+auc(response = which_null, predictor = pvals)
+
+boxplot(limma_out$coefficients[, 2] ~ round(beta))
+boxplot(mout$result$PosteriorMean ~ round(beta))
+
+
+mout$pi0
+mean(which_null)
+samp <- vicar::rmixnorm(n = 10000, pi_vals = mout$fitted_g$pi, sd_seq = mout$fitted_g$sd, mean_seq = mout$fitted_g$mean)
+samp_ash <- vicar::rmixnorm(n = 10000, pi_vals = aout$fitted_g$pi, sd_seq = aout$fitted_g$sd, mean_seq = aout$fitted_g$mean)
+
+plot(density(samp_ash))
+plot(density(samp))
+plot(density(beta))
+
+
+summary(mout$result$lfdr)
+summary(aout$result$lfdr)
+
+plot(mout$result$lfdr, aout$result$lfdr)
+```
+
+```{r}
+sessionInfo()
+```
